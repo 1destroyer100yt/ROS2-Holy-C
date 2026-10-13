@@ -360,4 +360,6 @@ What we do instead is **better**, not just a workaround:
   - [x] Full stack over our IP stack + multicast against Cyclone DDS (TAP)
   - [x] SLIP serial link (tested over a pty against Linux) - this is also Phase 6, in pure HolyC
   - [~] e1000 driver written (VERIFY on QEMU), `RosNetwork(...)` / `RosNetworkSlip(...)` one-liners
-- [ ] Phase 8 tf/rviz-lite/rosbag-lite
+- [~] Phase 8 tf/rviz-lite/rosbag-lite
+  - [x] tf2: transforms, buffer with interpolation, lookups across the tree, /tf + /tf_static,
+        tf2_echo (`src/Tf/`, docs/TF.md)

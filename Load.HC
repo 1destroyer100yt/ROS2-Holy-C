@@ -13,6 +13,8 @@ Cd(__DIR__);;
 Cd(__DIR__);;
 #include "src/Tools/Load.HC"
 Cd(__DIR__);;
+#include "src/Tf/Load.HC"
+Cd(__DIR__);;
 #include "src/Net/Load.HC"
 Cd(__DIR__);;
 #include "src/Dds/Load.HC"
