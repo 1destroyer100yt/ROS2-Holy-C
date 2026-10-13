@@ -341,7 +341,13 @@ What we do instead is **better**, not just a workaround:
         TempleOS drawing + arrow-key teleop (VERIFY on real install); TurtleSquare launch demo
   - [ ] DolDoc clickable output (topic names that open an echo)
   - [ ] ros2 bag (Phase 8)
-- [ ] Phase 5 plugins (finish + hot reload tested in VM)
+- [x] Phase 5 plugins
+  - [x] Registry: create/destroy, methods by name, base-type check (`PluginCreateAs`),
+        `PluginClassesFor(base)`, manifests (`PluginDescribe`), replace methods at runtime
+  - [x] cpp2hc output registers itself in `PluginInit_<file>()` (runs on load in TempleOS)
+  - [x] Converted C++ tutorial plugins compile and run in host tests; `examples/PluginNode.HC`
+        picks its plugin from a parameter and swaps it while running
+  - [ ] Test `PluginLoad`/`PluginReload` (ExeFile) on a real TempleOS install
 - [ ] Phase 6 serial bridge
 - [ ] Phase 7 networking + RTPS
 - [ ] Phase 8 tf/rviz-lite/rosbag-lite

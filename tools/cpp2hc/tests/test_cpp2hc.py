@@ -119,8 +119,9 @@ class TestBasics(unittest.TestCase):
     def test_namespace_unwrapped_and_export(self):
         out = conv("namespace a { namespace b { class C { public: int f() { return 1; } }; } }\n"
                    "PLUGINLIB_EXPORT_CLASS(a::b::C, base::Thing)")
-        self.assertIn('PluginClassAdd("a::b::C","base::Thing",&C_New,&C_Del);', out)
-        self.assertIn('PluginMethodAdd("a::b::C","f",&C_f);', out)
+        self.assertIn('  PluginClassAdd("a::b::C","base::Thing",&C_New,&C_Del);', out)
+        self.assertIn('  PluginMethodAdd("a::b::C","f",&C_f);', out)
+        self.assertIn("U0 PluginInit_input()", out)
         self.assertNotIn("namespace", out)
 
 

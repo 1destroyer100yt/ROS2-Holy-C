@@ -85,7 +85,14 @@ I64 StraightLine_plan(StraightLine *self,Point *start,Point *goal,std::vector<Po
   return n;
 }
 
-//pluginlib registration (was PLUGINLIB_EXPORT_CLASS)
-PluginClassAdd("my_planners::StraightLine","nav_base::GlobalPlanner",&StraightLine_New,&StraightLine_Del);
-PluginMethodAdd("my_planners::StraightLine","configure",&StraightLine_configure);
-PluginMethodAdd("my_planners::StraightLine","plan",&StraightLine_plan);
+//pluginlib registration (was PLUGINLIB_EXPORT_CLASS).
+//Runs when the file is loaded (PluginLoad); call it yourself if you #include.
+U0 PluginInit_planner()
+{
+  PluginClassAdd("my_planners::StraightLine","nav_base::GlobalPlanner",&StraightLine_New,&StraightLine_Del);
+  PluginMethodAdd("my_planners::StraightLine","configure",&StraightLine_configure);
+  PluginMethodAdd("my_planners::StraightLine","plan",&StraightLine_plan);
+}
+//@host-skip-begin
+PluginInit_planner;
+//@host-skip-end

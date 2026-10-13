@@ -195,3 +195,35 @@ U0 PluginList()
     c=c->next;
   }
 }
+
+//Like pluginlib's createInstance with a base type: NULL unless class
+//name is loaded and says it implements base.
+CPluginObj *PluginCreateAs(U8 *name,U8 *base)
+{
+  if (!PluginIsA(name,base)) {
+    Print("PluginCreateAs: \"%s\" is not a loaded \"%s\"\n",name,base);
+    return NULL;
+  }
+  return PluginCreate(name);
+}
+
+Bool PluginIsLoaded(U8 *name)
+{
+  CPluginClass *c=PluginClassFind(name);
+  return c && c->ctor;
+}
+
+//Names of every declared/loaded class for a base (vec of new
+//strings, sorted; free with RosStrVecDel). Like getDeclaredClasses.
+CRosVec *PluginClassesFor(U8 *base)
+{
+  CRosVec *v=RosVecNew(8);
+  CPluginClass *c=plugin_classes;
+  while (c) {
+    if (c->base && !StrCmp(c->base,base))
+      RosVecPushI64(v,StrNew(c->name));
+    c=c->next;
+  }
+  RosStrVecSort(v);
+  return v;
+}

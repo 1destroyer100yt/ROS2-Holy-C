@@ -1074,14 +1074,21 @@ class Converter:
             L.append("")
 
         if self.exports:
-            L.append("//pluginlib registration (was PLUGINLIB_EXPORT_CLASS)")
+            init = "PluginInit_" + re.sub(r"\W", "_", os.path.splitext(os.path.basename(
+                [x for x in sources if not x.endswith((".h", ".hpp", ".hh", ".hxx"))][-1]
+                if any(not x.endswith((".h", ".hpp", ".hh", ".hxx")) for x in sources)
+                else sources[-1]))[0]).strip("_")
+            L.append("//pluginlib registration (was PLUGINLIB_EXPORT_CLASS).")
+            L.append("//Runs when the file is loaded (PluginLoad); call it yourself if you #include.")
+            L.append("U0 %s()" % init)
+            L.append("{")
             for derived, base in self.exports:
                 short = derived.split("::")[-1]
                 if short not in self.classes:
-                    L.append("%sexported class %s was not found in the input" % (TODO, derived))
+                    L.append("  %sexported class %s was not found in the input" % (TODO, derived))
                     continue
                 k = self.classes[short]
-                L.append('PluginClassAdd("%s","%s",&%s_New,&%s_Del);' % (derived, base, short, short))
+                L.append('  PluginClassAdd("%s","%s",&%s_New,&%s_Del);' % (derived, base, short, short))
                 done = set()
                 kk = k
                 chain = [k]
@@ -1095,7 +1102,11 @@ class Converter:
                         if getattr(m, "overload", False):
                             continue
                         done.add(m.name)
-                        L.append('PluginMethodAdd("%s","%s",&%s);' % (derived, m.name, m.hc_name))
+                        L.append('  PluginMethodAdd("%s","%s",&%s);' % (derived, m.name, m.hc_name))
+            L.append("}")
+            L.append("//@host-skip-begin")
+            L.append("%s;" % init)
+            L.append("//@host-skip-end")
             L.append("")
         return "\n".join(L).rstrip() + "\n"
 

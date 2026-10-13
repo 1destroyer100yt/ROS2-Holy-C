@@ -52,12 +52,22 @@ where the C++ source already lives. The output `.HC` file is what goes to Temple
 | `for (int i = 0; ...)` | `I64 i;` hoisted + `for (i = 0; ...)` |
 | `sqrt pow sin cos atan2 hypot min max M_PI ...` | `Sqrt Pow Sin Cos Arg(x,y) ... pi` |
 | `nullptr true false 1.5f 10u` | `NULL TRUE FALSE 1.5 10` |
-| `PLUGINLIB_EXPORT_CLASS(A, B)` | `PluginClassAdd(...)` + `PluginMethodAdd(...)` |
+| `PLUGINLIB_EXPORT_CLASS(A, B)` | `PluginInit_<file>()` with `PluginClassAdd(...)` + `PluginMethodAdd(...)`, run automatically when TempleOS loads the file |
 | `plugins.xml` | `PluginDescribe(...)` |
 
 Flagged with a TODO: templates, STL containers, smart pointers, `auto`, lambdas,
 overloads, operator overloading, non-const references, exceptions, string `+`, `rclcpp::`
 APIs, and method calls on types it doesn't know.
+
+## Using a converted plugin
+```
+PluginLoad("~/MyPlugin.HC");                       //compiles it and registers its classes
+CPluginObj *o=PluginCreateAs("my_pkg::MyPlanner","nav_base::GlobalPlanner");
+F64 (*area)(U8 *self)=PluginMethod(o,"area");
+(*area)(o->self);
+PluginDestroy(o);
+```
+See `examples/PluginNode.HC` for a node that picks its plugin from a parameter.
 
 ## Tests
 

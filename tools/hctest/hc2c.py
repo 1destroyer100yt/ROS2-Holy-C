@@ -219,9 +219,12 @@ def to_c(lines, main=None):
     # class/union Name { -> typedef + struct/union
     def cls(m):
         kind = "struct" if m.group(1) == "class" else "union"
+        head = "typedef %s %s %s; %s %s%s" % (kind, m.group(2), m.group(2), kind, m.group(2), m.group(4))
         if ":" in (m.group(3) or ""):
-            raise SystemExit("hc2c: class inheritance (%s) not supported in core code" % m.group(2))
-        return "typedef %s %s %s; %s %s%s" % (kind, m.group(2), m.group(2), kind, m.group(2), m.group(4))
+            # HolyC "class D:B" = B's fields first, reachable directly: an
+            # unnamed embedded struct does exactly that (-fms-extensions)
+            head += " struct %s;" % m.group(3).split(":")[1].strip()
+        return head
     text = re.sub(r"^(class|union)\s+(\w+)(\s*:\s*\w+)?([ \t]*(?://[^\n]*)?\n?(?:#line[^\n]*\n)?\s*\{)",
                   cls, text, flags=re.M)
     text = re.sub(r"\boffset\(\s*(\w+)\s*\.\s*(\w+)\s*\)", r"__builtin_offsetof(\1,\2)", text)
@@ -245,7 +248,7 @@ def build(entry, main, out_c=None, extra_c=()):
     with open(out_c, "w") as fh:
         fh.write(c)
     exe = os.path.join(tmp, "a.out")
-    cmd = ["gcc", "-std=gnu11", "-O1", "-g", "-fwrapv", "-fno-strict-aliasing",
+    cmd = ["gcc", "-std=gnu11", "-O1", "-g", "-fwrapv", "-fno-strict-aliasing", "-fms-extensions",
            "-Wall", "-Werror=implicit-function-declaration", "-Werror=return-type",
            "-Wno-incompatible-pointer-types", "-Wno-int-conversion", "-Wno-pointer-sign",
            "-Wno-unused-function", "-Wno-unused-variable", "-Wno-unused-but-set-variable",

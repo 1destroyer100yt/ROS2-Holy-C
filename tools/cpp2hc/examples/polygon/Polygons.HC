@@ -105,12 +105,19 @@ U0 Triangle_Del(Triangle *self)
   Free(self);
 }
 
-//pluginlib registration (was PLUGINLIB_EXPORT_CLASS)
-PluginClassAdd("polygon_plugins::Square","polygon_base::RegularPolygon",&Square_New,&Square_Del);
-PluginMethodAdd("polygon_plugins::Square","initialize",&Square_initialize);
-PluginMethodAdd("polygon_plugins::Square","area",&Square_area);
-PluginMethodAdd("polygon_plugins::Square","describe",&Square_describe);
-PluginClassAdd("polygon_plugins::Triangle","polygon_base::RegularPolygon",&Triangle_New,&Triangle_Del);
-PluginMethodAdd("polygon_plugins::Triangle","initialize",&Triangle_initialize);
-PluginMethodAdd("polygon_plugins::Triangle","area",&Triangle_area);
-PluginMethodAdd("polygon_plugins::Triangle","getHeight",&Triangle_getHeight);
+//pluginlib registration (was PLUGINLIB_EXPORT_CLASS).
+//Runs when the file is loaded (PluginLoad); call it yourself if you #include.
+U0 PluginInit_polygons()
+{
+  PluginClassAdd("polygon_plugins::Square","polygon_base::RegularPolygon",&Square_New,&Square_Del);
+  PluginMethodAdd("polygon_plugins::Square","initialize",&Square_initialize);
+  PluginMethodAdd("polygon_plugins::Square","area",&Square_area);
+  PluginMethodAdd("polygon_plugins::Square","describe",&Square_describe);
+  PluginClassAdd("polygon_plugins::Triangle","polygon_base::RegularPolygon",&Triangle_New,&Triangle_Del);
+  PluginMethodAdd("polygon_plugins::Triangle","initialize",&Triangle_initialize);
+  PluginMethodAdd("polygon_plugins::Triangle","area",&Triangle_area);
+  PluginMethodAdd("polygon_plugins::Triangle","getHeight",&Triangle_getHeight);
+}
+//@host-skip-begin
+PluginInit_polygons;
+//@host-skip-end
