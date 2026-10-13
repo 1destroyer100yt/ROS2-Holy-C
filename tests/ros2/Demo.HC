@@ -78,7 +78,8 @@ I64 DemoSeconds()
   return s;
 }
 
-I64 Ros2Demo()
+//Run the demo node: DDS with peer (an IP) as unicast peer.
+I64 Ros2DemoBody(I64 peer,Bool mcast)
 {
   CRtpsPart *pt;
   CRosNode *n;
@@ -89,15 +90,14 @@ I64 Ros2Demo()
   CDemo d;
   I64 end,next=0,count=0;
   U8 *stop=NULL;
-  RosIfaceLoadAll();
 //@host: stop=(U8 *)getenv("DEMO_STOP");	//a file: quit when it appears
   MemSet(&d,0,sizeof(CDemo));
-  pt=RosDdsStart(0,FALSE);
+  pt=RosDdsStart(0,mcast);
   if (!pt) {
     Print("can't open RTPS ports\n");
     return 1;
   }
-  RosDdsAddPeer(pt,RosIpParse("127.0.0.1"));
+  RosDdsAddPeer(pt,peer);
   n=RosNodeNew("holyc_demo",NULL);
   RosExecAdd(e,n);
   RosParamDeclare(n,"greeting","Hello from HolyC");
@@ -130,4 +130,33 @@ I64 Ros2Demo()
   RosExecDel(e);
   RosDdsStop();
   return 0;
+}
+
+//On this machine, over the host's sockets (tools/ros2test/run.sh).
+I64 Ros2Demo()
+{
+  RosIfaceLoadAll();
+  return Ros2DemoBody(RosIpParse("127.0.0.1"),FALSE);
+}
+
+//The whole thing on our own stack and e1000 driver, as /init of a
+//Linux guest in QEMU (tools/e1000test/run.sh ros2): what TempleOS runs.
+I64 Ros2DemoE1000()
+{
+  CRosNetIf *nif;
+  I64 r=1;
+//@host: mkdir("/proc",0555); mount("proc","/proc","proc",0,NULL); iopl(3);
+  RosIfaceLoadAll();
+  nif=E1000Open();
+  if (nif) {
+    RosNetUp(nif);
+    if (RosNetDhcp(30*ROS_NS_PER_SEC)) {
+      Print("DHCP %s\n",RosIpStr(ros_netif->ip));
+      r=Ros2DemoBody(ros_netif->gw,TRUE);
+    } else
+      Print("RESULT holyc: no DHCP answer\n");
+  } else
+    Print("RESULT holyc: no e1000 found\n");
+//@host: fflush(stdout); sync(); reboot(RB_POWER_OFF);
+  return r;
 }

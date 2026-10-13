@@ -370,6 +370,9 @@ What we do instead is **better**, not just a workaround:
   - [x] SLIP serial link (tested over a pty against Linux) - this is also Phase 6, in pure HolyC
   - [x] e1000 driver (memory-mapped; QEMU's e1000 ignores the I/O-port window) tested on QEMU's
         emulated 82540EM from a Linux guest: DHCP + the full echo suite (tools/e1000test)
+  - [x] The whole stack in that guest (e1000 + our IP stack + DHCP + DDS + the demo node) against
+        a real ROS 2 Jazzy, Fast DDS and Cyclone DDS: every ros2 CLI check passes
+        (tools/e1000test/run.sh ros2, also in CI)
   - [x] `RosNetwork(...)` / `RosNetworkDhcp(...)` / `RosNetworkSlip(...)` one-liners
   - [x] DHCP client (`RosNetDhcp`, `RosNetworkDhcp(domain)`), tested against Scapy's DHCP server over TAP
   - [x] Getting files in: `tools/mkdisk` makes a FAT32 disk image of the repo (checked with pyfatfs);

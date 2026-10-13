@@ -82,7 +82,10 @@ Both need root for the TAP device. CI runs them with sudo.
   `tools/e1000test/run.sh` runs it on QEMU's emulated card: the HolyC is built as a static Linux
   program and booted as `/init` of a Linux guest, where it finds the card on the PCI bus itself,
   gets an address from a DHCP server (Scapy) and passes the same UDP/ICMP suite as the TAP test,
-  against the host's Linux kernel. On TempleOS, check the `VERIFY` notes (BAR0 mapping).
+  against the host's Linux kernel. `tools/e1000test/run.sh ros2` goes further: the HolyC demo
+  node on our e1000 driver, IP stack (address from DHCP) and DDS, in the guest, with the real
+  ros2 command line on the host (Fast DDS and Cyclone DDS): everything but TempleOS itself.
+  On TempleOS, check the `VERIFY` notes (BAR0 mapping).
 - **SLIP** (`src/Net/Slip.HC`): IP over a serial port (COM1 at 115200), for machines without a
   supported card. Tested end to end: `tools/nettest/run.sh slip` runs our stack over a pty, with
   a Linux TUN interface on the other end.

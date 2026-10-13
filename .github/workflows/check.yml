@@ -32,4 +32,10 @@ jobs:
       - name: ros2 CLI <-> HolyC, HolyC -> Python nodes, rosbag2 both ways
         shell: bash -el {0}
         run: ROS_SETUP=$CONDA_PREFIX/setup.bash tools/ros2test/run.sh
+      - name: HolyC on our IP stack + e1000 driver in QEMU, real ros2 on the host
+        shell: bash -el {0}
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q qemu-system-x86
+          sudo -E env "PATH=$PATH" "LD_LIBRARY_PATH=$CONDA_PREFIX/lib" ROS_SETUP=$CONDA_PREFIX/setup.bash \
+            tools/e1000test/run.sh ros2
 
