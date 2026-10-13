@@ -46,6 +46,8 @@ class TestLint(unittest.TestCase):
         self.bad("x=*p(I64 *);", "postfix cast")
         self.good("x=sizeof(I64);")
         self.good('Print("what? int? $$");')
+        self.bad('x="a" "b";', "adjacent")
+        self.good('Print("a %s b","c d");')
 
     def test_default_args(self):
         errs = lint_src("I64 F(I64 a=1)\n{\n  return a;\n}\n")

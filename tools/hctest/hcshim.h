@@ -31,9 +31,10 @@ typedef int8_t Bool;
 static U8 *MAlloc(I64 n) { return malloc(n ? n : 1); }
 static U8 *CAlloc(I64 n) { return calloc(1, n ? n : 1); }
 static U0 Free(void *p) { free(p); }
-static U8 *MemCpy(void *d, const void *s, I64 n) { return memmove(d, s, n); }
-static U8 *MemSet(void *d, I64 v, I64 n) { return memset(d, (int)v, n); }
-static I64 MemCmp(const void *a, const void *b, I64 n) { return memcmp(a, b, n); }
+/* n == 0 with a NULL pointer is fine in HolyC, undefined in C: skip it */
+static U8 *MemCpy(void *d, const void *s, I64 n) { return n ? memmove(d, s, n) : d; }
+static U8 *MemSet(void *d, I64 v, I64 n) { return n ? memset(d, (int)v, n) : d; }
+static I64 MemCmp(const void *a, const void *b, I64 n) { return n ? memcmp(a, b, n) : 0; }
 static I64 StrLen(const U8 *s) { return s ? (I64)strlen((const char *)s) : 0; }
 static I64 StrCmp(const U8 *a, const U8 *b) { return strcmp((const char *)a, (const char *)b); }
 static I64 StrNCmp(const U8 *a, const U8 *b, I64 n) { return strncmp((const char *)a, (const char *)b, n); }

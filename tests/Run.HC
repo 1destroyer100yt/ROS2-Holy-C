@@ -5,15 +5,22 @@
 //  python3 tools/hctest/hc2c.py run tests/Run.HC --main RosTestsRun
 
 Cd(__DIR__);;
-#include "../src/Load.HC"
+#include "../Load.HC"
 Cd(__DIR__);;
 #include "../src/Core/Test.HC"
 #include "TestCore.HC"
+#include "TestMsg.HC"
+#include "TestLayout.HC"
+#include "TestGolden.HC"
 
 I64 RosTestsRun()
 {
   ros_test_pass=0;
   ros_test_fail=0;
+  RosIfaceLoadAll();
   TestCore();
+  TestMsg();
+  TestLayout();
+  TestGolden();
   return RosTestSummary();
 }

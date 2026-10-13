@@ -332,3 +332,128 @@ Bool RosStrToF64(U8 *s,F64 *out)
   *out=v;
   return TRUE;
 }
+
+U0 RosStrBufAddU64(CRosStrBuf *sb,U64 u)
+{
+  U8 tmp[24];
+  I64 i=23;
+  tmp[i]=0;
+  if (!u) {
+    i--;
+    tmp[i]='0';
+  }
+  while (u) {
+    i--;
+    tmp[i]='0'+u%10;
+    u/=10;
+  }
+  RosStrBufAdd(sb,tmp+i);
+}
+
+//Add an F64 formatted like Python's repr() (which is what ros2 topic
+//echo shows): the shortest digits that read back as the same value
+//(exact, see Dtoa.HC): "1.0", "0.1", "1e-05", "1.5e+20", "nan", "inf".
+U0 RosStrBufAddF64(CRosStrBuf *sb,F64 x)
+{
+  U64 bits=RosF64ToBits(x);
+  I64 p,n,i;
+  U8 dig[24];
+  if (((bits>>52)&0x7FF)==0x7FF) {
+    if (bits&0xFFFFFFFFFFFFF)
+      RosStrBufAdd(sb,"nan");
+    else if (bits>>63)
+      RosStrBufAdd(sb,"-inf");
+    else
+      RosStrBufAdd(sb,"inf");
+    return;
+  }
+  if (bits>>63) {
+    RosStrBufAddC(sb,'-');
+    x=-x;
+  }
+  if (x==0.0) {
+    RosStrBufAdd(sb,"0.0");
+    return;
+  }
+  p=RosF64Digits(x,dig,&n);
+  n--;	//exponent of the first digit
+  if (n>=-4 && n<16) {
+    if (n>=0) {
+      for (i=0;i<=n;i++) {
+        if (i<p)
+          RosStrBufAddC(sb,dig[i]);
+        else
+          RosStrBufAddC(sb,'0');
+      }
+      RosStrBufAddC(sb,'.');
+      if (p>n+1)
+        RosStrBufAdd(sb,dig+n+1);
+      else
+        RosStrBufAddC(sb,'0');
+    } else {
+      RosStrBufAdd(sb,"0.");
+      for (i=0;i< -n-1;i++)
+        RosStrBufAddC(sb,'0');
+      RosStrBufAdd(sb,dig);
+    }
+    return;
+  }
+  RosStrBufAddC(sb,dig[0]);
+  if (p>1) {
+    RosStrBufAddC(sb,'.');
+    RosStrBufAdd(sb,dig+1);
+  }
+  RosStrBufAddC(sb,'e');
+  if (n<0) {
+    RosStrBufAddC(sb,'-');
+    n=-n;
+  } else
+    RosStrBufAddC(sb,'+');
+  if (n<10)
+    RosStrBufAddC(sb,'0');
+  RosStrBufAddI64(sb,n);
+}
+
+//Add s as a YAML single-quoted string: 'it''s'.
+U0 RosStrBufAddQuoted(CRosStrBuf *sb,U8 *s)
+{
+  RosStrBufAddC(sb,'\'');
+  if (s)
+    while (*s) {
+      if (*s=='\'')
+        RosStrBufAddC(sb,'\'');
+      RosStrBufAddC(sb,*s);
+      s++;
+    }
+  RosStrBufAddC(sb,'\'');
+}
+
+//If s is quoted with ' or ", return a new unquoted copy (handles
+//'' inside single quotes and \" \\ \' \n \t inside double quotes).
+//Otherwise a plain copy. Yours to Free.
+U8 *RosStrUnquote(U8 *s)
+{
+  CRosStrBuf *sb;
+  I64 n=StrLen(s),i;
+  U8 q;
+  if (n<2 || (s[0]!='\'' && s[0]!='"') || s[n-1]!=s[0])
+    return StrNew(s);
+  q=s[0];
+  sb=RosStrBufNew();
+  for (i=1;i<n-1;i++) {
+    if (q=='\'' && s[i]=='\'' && s[i+1]=='\'' && i+1<n-1) {
+      RosStrBufAddC(sb,'\'');
+      i++;
+    } else if (q=='"' && s[i]=='\\' && i+1<n-1) {
+      i++;
+      if (s[i]=='n')
+        RosStrBufAddC(sb,'\n');
+      else if (s[i]=='t')
+        RosStrBufAddC(sb,'\t');
+      else
+        RosStrBufAddC(sb,s[i]);
+    } else
+      RosStrBufAddC(sb,s[i]);
+  }
+  return RosStrBufTake(sb);
+}

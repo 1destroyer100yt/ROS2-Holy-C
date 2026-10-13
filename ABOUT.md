@@ -18,13 +18,18 @@ real DDS/RTPS wire protocol too, so a TempleOS machine can talk to a normal ROS 
 | Path | What it is |
 |---|---|
 | [`PLAN.md`](PLAN.md) | The full roadmap: architecture, phases, limits, and what can't be done |
-| `src/` | The HolyC code (`Load.HC` loads everything) |
+| `Load.HC` | Loads everything: `#include "~/ROS2-Holy-C/Load.HC"` |
+| `src/` | The HolyC library (core, messages, plugins) |
+| `interfaces/` | 179 ROS 2 message/service types and their generated HolyC classes |
+| `tests/` | Unit tests; they run in TempleOS and on Linux (`tools/check.sh`) |
 | `src/Plugin/PluginLib.HC` | Plugin system (replaces pluginlib) |
 | `tools/cpp2hc/` | Converts C++ ROS 2 plugins into HolyC |
+| `tools/hctest/` | Builds and tests the HolyC on Linux, plus a HolyC linter |
 
 ## Status
-Early. The plan, the plugin registry, and the C++→HolyC plugin converter are done.
-Everything else is in [`PLAN.md`](PLAN.md).
+Early. Done so far: the plan, the core library, ROS 2 messages (179 interface types,
+byte-compatible with ROS 2's wire format), the plugin registry, and the C++→HolyC plugin
+converter. The rest is tracked in [`PLAN.md`](PLAN.md).
 
 ## Author
 Made by **Andrew Detroyer** ([@1destroyer100yt](https://github.com/1destroyer100yt)).

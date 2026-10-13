@@ -54,7 +54,7 @@ def strip_strings(line):
             j = i + 1
             while j < n and line[j] != c:
                 j += 2 if line[j] == "\\" else 1
-            out.append(c + " " * max(0, min(j, n) - i - 1) + c)
+            out.append(c + "x" * max(0, min(j, n) - i - 1) + c)
             i = j + 1
             continue
         if line.startswith("//", i):
@@ -118,7 +118,13 @@ def check_precedence(code):
 def lint(lines):
     """lines: list of (file, line_no, text, host_only). Returns error strings."""
     errs = []
+    prev = None
     for f, no, text, host_only in lines:
+        if not host_only:
+            code = strip_strings(text).strip()
+            if prev and prev[2].endswith('"') and code.startswith('"') or re.search(r'"\s+"', code):
+                errs.append("%s:%d: adjacent string literals - write one literal\n    %s" % (f, no, text.strip()))
+            prev = (f, no, code)
         if host_only:
             continue
         code = strip_strings(text)
@@ -188,10 +194,11 @@ def to_c(lines, main=None):
             raise SystemExit("hc2c: class inheritance (%s) not supported in core code" % m.group(2))
         return "typedef %s %s %s; %s %s%s" % (kind, m.group(2), m.group(2), kind, m.group(2), m.group(4))
     text = re.sub(r"^(class|union)\s+(\w+)(\s*:\s*\w+)?(\s*\n?(?:#line[^\n]*\n)?\s*\{)", cls, text, flags=re.M)
+    text = re.sub(r"\boffset\(\s*(\w+)\s*\.\s*(\w+)\s*\)", r"__builtin_offsetof(\1,\2)", text)
     head = '#include "%s"\n' % os.path.join(HERE, "hcshim.h")
     tail = ""
     if main:
-        tail = "\nint main(void) { return %s() != 0; }\n" % main
+        tail = "\nint main(void) { int r = %s() != 0; fflush(stdout); return r; }\n" % main
     return head + text + tail
 
 
@@ -228,6 +235,7 @@ def main(argv=None):
     r.add_argument("entry")
     r.add_argument("--main", required=True, help="HolyC function returning I64 (0 = success)")
     r.add_argument("--extra-c", nargs="*", default=[], help="extra C files to link (host-only checks)")
+    r.add_argument("--leaks", action="store_true", help="also fail on memory leaks (LeakSanitizer)")
     l_ = sub.add_parser("lint")
     l_.add_argument("entry")
     c = sub.add_parser("c")
@@ -248,7 +256,9 @@ def main(argv=None):
     exe = build(a.entry, a.main, extra_c=a.extra_c)
     if not exe:
         return 1
-    return subprocess.run([exe]).returncode
+    env = dict(os.environ)
+    env.setdefault("ASAN_OPTIONS", "detect_leaks=%d" % (1 if a.leaks else 0))
+    return subprocess.run([exe], env=env).returncode
 
 
 if __name__ == "__main__":

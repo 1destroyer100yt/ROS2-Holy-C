@@ -111,6 +111,10 @@ the demo works on real TempleOS in QEMU/VirtualBox.
 ### Phase 2 — Messages
 - `MsgParse.HC`: parse ROS 2 `.msg` and `.srv` (primitive types, fixed/bounded/unbounded
   arrays, strings, constants, default values, nested types, `---` split for services).
+- **As built:** serialization is driven by runtime type descriptions (parsed from the .msg
+  text at load time) instead of generated per-type functions, and the generator only makes the
+  typed classes. That's less generated code, and it works for types defined at runtime too.
+  Original idea:
 - `MsgGen.HC`: generates, per message, a `.HC` file with:
   - `class CMsg_pkg_Name { ... };`
   - `CMsg_pkg_Name *Msg_pkg_Name_New()`, `_Del`, `_Copy`
@@ -302,7 +306,19 @@ What we do instead is **better**, not just a workaround:
       F32 checked bit-exact against C across all 2^32 float32 patterns
   - [ ] First compile + `RosTestsRun;` on real TempleOS (check every `VERIFY` comment, e.g.
         `GetTSC`/`cnts.time_stamp_freq` in `Time.HC`, `StrPrintJoin` in `Log.HC`)
-- [ ] Phase 2 messages
+- [x] Phase 2 messages
+  - [x] 179 interfaces / 24 packages (`interfaces/`), Jazzy definitions + hand-written services
+  - [x] `.msg`/`.srv` parser -> runtime type descriptions (`src/Msg/Type.HC`, `Parse.HC`)
+  - [x] CDR (XCDR1) serializer/deserializer, LE + BE reading, bounds-checked (`Cdr.HC`)
+  - [x] new/free/deep copy, set-by-path (`linear.x`, `poses[2].pose...`), YAML like `ros2 topic echo` (`Msg.HC`)
+  - [x] HolyC code generator for typed classes (`Gen.HC`) + generated layout test
+  - [x] Golden tests: all 196 message/request/response types decode, re-encode byte-identical,
+        copy and print correctly against an independent serializer (rosbags)
+  - [x] F64 printing exact (Burger & Dybvig, `Dtoa.HC`), identical to Python repr
+  - [ ] Jazzy type hashes (RIHS01) - needed for Jazzy discovery in Phase 7
+  - [ ] Actions (.action files), wstring
+  - [ ] First compile on real TempleOS (watch: long string literals in TestGolden.HC,
+        `offset()` in TestLayout.HC, `FileRead`/`FileWrite` in File.HC)
 - [ ] Phase 3 graph/executor
 - [ ] Phase 4 tools
 - [ ] Phase 5 plugins (finish + hot reload tested in VM)

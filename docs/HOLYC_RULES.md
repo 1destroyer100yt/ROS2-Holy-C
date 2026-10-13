@@ -13,7 +13,8 @@ so `tools/hctest` can test it without a VM. These rules keep both working. The l
    DolDoc command and wrecks the file. Write `$$` for a literal `$`, for example `"$$FG,RED$$"`.
 3. **Casts don't convert numbers (lint).** HolyC's postfix cast `x(I64)` only relabels the bits.
    Use `ToI64(f)` / `ToF64(i)`, or just assign (`I64 i=f;` converts).
-4. **No `?:` (lint)**, no `do/while` (lint), no declarations inside `for(...)` (lint).
+4. **No `?:` (lint)**, no `do/while` (lint), no declarations inside `for(...)` (lint), no
+   adjacent string literals `"a" "b"` (lint).
 5. **Only one float type: `F64`.** Float32 conversion lives in `src/Core/F32.HC`.
 6. **Never divide a float by zero** to get inf/NaN; it may trap. Use `RosBitsToF64(ROS_F64_INF_BITS)`.
 7. **Classes can't be passed or returned by value.** Pass pointers.
