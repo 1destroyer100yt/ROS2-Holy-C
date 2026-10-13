@@ -19,6 +19,7 @@ jobs:
           sudo apt-get update -q && sudo apt-get install -y -q qemu-system-x86
           sudo -E env "PATH=$PATH" tools/e1000test/run.sh
           sudo -E env "PATH=$PATH" tools/hwtest/run.sh com
+          sudo -E env "PATH=$PATH" tools/nettest/run.sh slipcom
       - name: DDS over our own IP stack with multicast (TAP, needs root)
         run: sudo -E env "PATH=$PATH" tools/ddstest/run.sh tap
   ros2:

@@ -1,6 +1,6 @@
 # Hardware: serial ports, motor controllers, a robot base
 
-## Serial ports (`src/Hw/Serial.HC`)
+## Serial ports (`src/Core/Serial.HC`)
 `RosSerialOpenCom(0x3F8,38400)` opens a 16550 UART (COM1; 0x2F8 is COM2) at 8N1, polled.
 `RosSerialWrite`, `RosSerialRead(s,buf,cap,wait_ns)`, `RosSerialFlush`. On Linux (tests)
 `RosSerialOpenFd(fd)` wraps an open file descriptor instead.

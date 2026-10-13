@@ -14,17 +14,10 @@ tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 $PY tools/hwtest/roboclaw_sim.py --selfcheck || { echo "hwtest: FAIL (simulator vs the official library)"; exit 1; }
 if [ "$1" = "com" ]; then
-  QEMU=${QEMU:-qemu-system-x86_64}
-  if [ "$(id -u)" != 0 ] || ! command -v "$QEMU" >/dev/null; then echo "hwtest com: needs root and qemu, skipping"; exit 0; fi
-  if [ -z "$VMLINUZ" ]; then
-    pkg=$(apt-cache search --names-only '^linux-image-unsigned-[0-9.]+-[0-9]+-generic$' | sort -V | tail -1 | cut -d' ' -f1)
-    (cd "$tmp" && apt-get download -q "$pkg" >/dev/null 2>&1 && dpkg-deb -x ./*.deb k) || { echo "hwtest com: no kernel, skipping"; exit 0; }
-    VMLINUZ=$(ls "$tmp"/k/boot/vmlinuz-*)
-  fi
-  python3 tools/hctest/hc2c.py c tests/hw/RoboClaw.HC --main HwRoboClawCom -o "$tmp/guest.c" || exit 1
-  gcc -std=gnu11 -O1 -fwrapv -fno-strict-aliasing -fms-extensions -w -static "$tmp/guest.c" \
-    -o "$tmp/init" -lm -lpthread || exit 1
-  python3 tools/e1000test/initramfs.py "$tmp/init" "$tmp/initrd.cpio"
+  source tools/guest/lib.sh
+  guest_ok || { echo "hwtest com: needs root and $QEMU, skipping"; exit 0; }
+  guest_kernel "$tmp" || { echo "hwtest com: no kernel, skipping"; exit 0; }
+  guest_initrd tests/hw/RoboClaw.HC HwRoboClawCom "$tmp" || exit 1
   "$QEMU" -m 256 -display none -no-reboot -serial file:"$tmp/console.txt" \
     -chardev socket,id=c2,path="$tmp/com2.sock",server=on,wait=on -serial chardev:c2 \
     -kernel "$VMLINUZ" -initrd "$tmp/initrd.cpio" -append "console=ttyS0 panic=-1 quiet" &

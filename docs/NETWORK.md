@@ -87,7 +87,8 @@ Both need root for the TAP device. CI runs them with sudo.
   ros2 command line on the host (Fast DDS and Cyclone DDS): everything but TempleOS itself.
   On TempleOS, check the `VERIFY` notes (BAR0 mapping).
 - **SLIP** (`src/Net/Slip.HC`): IP over a serial port (COM1 at 115200), for machines without a
-  supported card. Tested end to end: `tools/nettest/run.sh slip` runs our stack over a pty, with
+  supported card. Built on `src/Core/Serial.HC`; `tools/nettest/run.sh slipcom` runs it over
+  COM2's emulated 16550 in a QEMU guest (the HolyC drives the UART itself). Tested end to end: `tools/nettest/run.sh slip` runs our stack over a pty, with
   a Linux TUN interface on the other end.
 - **TAP** (`src/Net/Tap.HC`): Linux only, for tests.
 

@@ -367,7 +367,7 @@ What we do instead is **better**, not just a workaround:
         rosbag2 both ways (tools/ros2test, also in CI)
   - [x] IP stack (Ethernet/ARP/IPv4+fragments/UDP/ICMP/IGMP), tested against Linux over TAP
   - [x] Full stack over our IP stack + multicast against Cyclone DDS (TAP)
-  - [x] SLIP serial link (tested over a pty against Linux) - this is also Phase 6, in pure HolyC
+  - [x] SLIP serial link (tested over a pty against Linux, and over QEMU's emulated 16550 UART)
   - [x] e1000 driver (memory-mapped; QEMU's e1000 ignores the I/O-port window) tested on QEMU's
         emulated 82540EM from a Linux guest: DHCP + the full echo suite (tools/e1000test)
   - [x] The whole stack in that guest (e1000 + our IP stack + DHCP + DDS + the demo node) against

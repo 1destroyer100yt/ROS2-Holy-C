@@ -12,6 +12,8 @@ class CRosSerial
   I64 port;		//UART base, or 0
   I64 fd;		//host file descriptor, or -1
   I64 rx_bytes,tx_bytes;
+  U8 *in;		//host: buffered reads
+  I64 in_len,in_pos;
 };
 
 //A 16550 at base, 8N1, polled (no interrupts).
@@ -38,6 +40,7 @@ CRosSerial *RosSerialOpenFd(I64 fd)
 {
   CRosSerial *s=CAlloc(sizeof(CRosSerial));
   s->fd=fd;
+  s->in=MAlloc(4096);
   return s;
 }
 
@@ -46,6 +49,7 @@ U0 RosSerialClose(CRosSerial *s)
   if (!s)
     return;
 //@host: if (s->fd>=0) close(s->fd);
+  Free(s->in);
   Free(s);
 }
 
@@ -75,7 +79,8 @@ I64 RosSerialGetC(CRosSerial *s)
       return InU8(s->port);
     return -1;
   }
-//@host: if (read(s->fd,&c,1)==1) return c;
+//@host: if (s->in_pos>=s->in_len) { ssize_t r=read(s->fd,s->in,4096); if (r<=0) return -1; s->in_len=r; s->in_pos=0; }
+//@host: c=s->in[s->in_pos++]; return c;
   return -1;
 }
 

@@ -14,6 +14,7 @@ Cd(__DIR__);;
 #include "Core/Ring.HC"
 #include "Core/Map.HC"
 #include "Core/Time.HC"
+#include "Core/Serial.HC"
 #include "Core/Log.HC"
 #include "Core/Yaml.HC"
 #include "Msg/Type.HC"

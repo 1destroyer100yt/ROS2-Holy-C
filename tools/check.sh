@@ -34,6 +34,7 @@ tools/nettest/run.sh dhcp
 echo "== RoboClaw + DiffDrive against a simulator checked with the official library"
 tools/hwtest/run.sh
 tools/hwtest/run.sh com
+tools/nettest/run.sh slipcom
 echo "== e1000 driver on QEMU's emulated card (skipped without root/qemu)"
 tools/e1000test/run.sh
 echo "== DDS interop with Cyclone DDS (skipped if cyclonedds isn't installed)"

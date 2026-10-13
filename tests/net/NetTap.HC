@@ -119,3 +119,18 @@ I64 E1000Guest()
 //@host: fflush(stdout); sync(); reboot(RB_POWER_OFF);
   return r;
 }
+
+//SLIP over COM2's 16550 UART in a QEMU guest (tools/nettest/run.sh slipcom):
+//the same serial code TempleOS runs on COM1/COM2.
+I64 SlipComGuest()
+{
+  CRosNetIf *nif;
+  I64 r;
+//@host: iopl(3);
+  nif=SlipOpenCom(0x2F8);
+  RosNetUp(nif);
+  RosNetConfig(RosIpParse("10.79.0.2"),RosIpParse("255.255.255.0"),0);
+  r=NetEcho(nif);
+//@host: fflush(stdout); sync(); reboot(RB_POWER_OFF);
+  return r;
+}

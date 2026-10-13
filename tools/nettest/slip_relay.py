@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """A serial line for the SLIP test: a pty (the "cable") whose other end is a
 Linux TUN interface rhcs0 (10.79.0.1). Prints the pty path, then relays
-SLIP frames <-> IP packets until killed."""
+SLIP frames <-> IP packets until killed.
+  slip_relay.py --unix PATH   use QEMU's serial port socket instead of a pty
+"""
 import fcntl
 import os
 import select
@@ -28,10 +30,21 @@ def main():
     tun = os.open("/dev/net/tun", os.O_RDWR)
     fcntl.ioctl(tun, TUNSETIFF, struct.pack("16sH", b"rhcs0", IFF_TUN | IFF_NO_PI))
     ifconfig(b"rhcs0", "10.79.0.1")
-    master, slave = os.openpty()
-    tty.setraw(slave)
-    attrs = termios.tcgetattr(slave)
-    print(os.ttyname(slave), flush=True)
+    if len(sys.argv) > 2 and sys.argv[1] == "--unix":
+        import time
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        for _ in range(300):
+            try:
+                sock.connect(sys.argv[2])
+                break
+            except OSError:
+                time.sleep(0.1)
+        master = sock.fileno()
+        print(sys.argv[2], flush=True)
+    else:
+        master, slave = os.openpty()
+        tty.setraw(slave)
+        print(os.ttyname(slave), flush=True)
     buf, esc = bytearray(), False
     while True:
         r, _, _ = select.select([tun, master], [], [], 1.0)

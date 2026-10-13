@@ -13,38 +13,12 @@
 
 class CRosSlip
 {
-  I64 port;		//TempleOS: UART base (0x3F8 = COM1)
-  I64 fd;		//host: a pty or socket
+  CRosSerial *ser;	//a UART (TempleOS) or a pty (Linux tests)
   U8 *rx;
   I64 rx_len;
   Bool esc,overflow;
   U8 *tx;
-  U8 *in;		//host: buffered reads
-  I64 in_len,in_pos;
 };
-
-//---- one byte at a time (UART on TempleOS, a file descriptor on Linux)
-
-U0 SlipPutByte(CRosSlip *s,U8 c)
-{
-//@host-skip-begin
-  while (!(InU8(s->port+5)&0x20))	//transmit holding register empty
-    Yield();
-  OutU8(s->port,c);
-//@host-skip-end
-}
-
-//Next byte, or -1 if none waiting.
-I64 SlipGetByte(CRosSlip *s)
-{
-//@host-skip-begin
-  if (InU8(s->port+5)&1)	//data ready
-    return InU8(s->port);
-//@host-skip-end
-//@host: if (s->in_pos>=s->in_len) { ssize_t r=read(s->fd,s->in,4096); if (r<=0) return -1; s->in_len=r; s->in_pos=0; }
-//@host: return s->in[s->in_pos++];
-  return -1;
-}
 
 //Encode a packet into buf (needs 2*len+2). Returns the length.
 I64 SlipEncode(U8 *p,I64 len,U8 *buf)
@@ -103,15 +77,11 @@ I64 SlipFeed(CRosSlip *s,U8 c)
 
 Bool SlipTx(CRosSlip *s,U8 *p,I64 len)
 {
-  I64 n,i;
+  I64 n;
   if (len>SLIP_MAX)
     return FALSE;
   n=SlipEncode(p,len,s->tx);
-//@host-skip-begin
-  for (i=0;i<n;i++)
-    SlipPutByte(s,s->tx[i]);
-//@host-skip-end
-//@host: { I64 off=0; while (off<n) { ssize_t w=write(s->fd,s->tx+off,n-off); if (w>0) off+=w; else if (errno!=EAGAIN) return FALSE; else usleep(100); } }
+  RosSerialWrite(s->ser,s->tx,n);
   return TRUE;
 }
 
@@ -119,7 +89,7 @@ I64 SlipRx(CRosSlip *s,U8 *buf,I64 cap)
 {
   I64 c,n;
   while (TRUE) {
-    c=SlipGetByte(s);
+    c=RosSerialGetC(s->ser);
     if (c<0)
       return -1;
     n=SlipFeed(s,c);
@@ -146,28 +116,18 @@ CRosNetIf *SlipLink(CRosSlip *s)
   return nif;
 }
 
-//@host-skip-begin
 //SLIP on a COM port (0x3F8 = COM1, 0x2F8 = COM2) at 115200 8N1.
 CRosNetIf *SlipOpenCom(I64 base)
 {
   CRosSlip *s=CAlloc(sizeof(CRosSlip));
-  s->port=base;
-  OutU8(base+1,0x00);	//no interrupts
-  OutU8(base+3,0x80);	//DLAB: set the divisor
-  OutU8(base+0,0x01);	//115200 baud
-  OutU8(base+1,0x00);
-  OutU8(base+3,0x03);	//8 bits, no parity, 1 stop
-  OutU8(base+2,0xC7);	//FIFO on, cleared, 14-byte threshold
-  OutU8(base+4,0x0B);	//DTR | RTS | OUT2
+  s->ser=RosSerialOpenCom(base,115200);
   return SlipLink(s);
 }
-//@host-skip-end
 
 //Host tests: SLIP over a file descriptor (a pty).
 CRosNetIf *SlipOpenFd(I64 fd)
 {
   CRosSlip *s=CAlloc(sizeof(CRosSlip));
-  s->fd=fd;
-  s->in=MAlloc(4096);
+  s->ser=RosSerialOpenFd(fd);
   return SlipLink(s);
 }

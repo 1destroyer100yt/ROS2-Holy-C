@@ -15,29 +15,21 @@
 #     (tools/ros2test/checks.sh; needs ROS 2: ROS_SETUP=... or ros2 on PATH)
 cd "$(dirname "$0")/../.."
 PY=${PYTHON:-python3}
-QEMU=${QEMU:-qemu-system-x86_64}
-if [ ! -w /dev/net/tun ] || [ "$(id -u)" != 0 ]; then echo "e1000test: needs root and /dev/net/tun, skipping"; exit 0; fi
-if ! command -v "$QEMU" >/dev/null; then echo "e1000test: no $QEMU, skipping"; exit 0; fi
+source tools/guest/lib.sh
+if [ ! -w /dev/net/tun ] || ! guest_ok; then echo "e1000test: needs root, /dev/net/tun and $QEMU, skipping"; exit 0; fi
 if ! $PY -c "import scapy" 2>/dev/null; then echo "e1000test: scapy not installed for $PY, skipping"; exit 0; fi
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-if [ -z "$VMLINUZ" ]; then
-  pkg=$(apt-cache search --names-only '^linux-image-unsigned-[0-9.]+-[0-9]+-generic$' | sort -V | tail -1 | cut -d' ' -f1)
-  (cd "$tmp" && apt-get download -q "$pkg" >/dev/null 2>&1 && dpkg-deb -x ./*.deb k) || { echo "e1000test: no kernel image, skipping"; exit 0; }
-  VMLINUZ=$(ls "$tmp"/k/boot/vmlinuz-*)
-fi
+guest_kernel "$tmp" || { echo "e1000test: no kernel image, skipping"; exit 0; }
 if [ "$1" = "ros2" ]; then
   [ -n "$ROS_SETUP" ] && source "$ROS_SETUP"
   if ! command -v ros2 >/dev/null; then echo "e1000test ros2: no ROS 2, skipping"; exit 0; fi
-  python3 tools/hctest/hc2c.py c tests/ros2/Demo.HC --main Ros2DemoE1000 -o "$tmp/guest.c" || exit 1
+  guest_initrd tests/ros2/Demo.HC Ros2DemoE1000 "$tmp" || exit 1
   append="DEMO_SECONDS=${DEMO_SECONDS:-200}"
 else
-  python3 tools/hctest/hc2c.py c tests/net/NetTap.HC --main E1000Guest -o "$tmp/guest.c" || exit 1
+  guest_initrd tests/net/NetTap.HC E1000Guest "$tmp" || exit 1
   append=""
 fi
-gcc -std=gnu11 -O1 -fwrapv -fno-strict-aliasing -fms-extensions -w -static "$tmp/guest.c" \
-  -o "$tmp/init" -lm -lpthread || exit 1
-python3 tools/e1000test/initramfs.py "$tmp/init" "$tmp/initrd.cpio"
 "$QEMU" -m 256 -display none -no-reboot -serial file:"$tmp/console.txt" \
   -kernel "$VMLINUZ" -initrd "$tmp/initrd.cpio" -append "console=ttyS0 panic=-1 quiet $append" \
   -netdev tap,id=n0,ifname=rhe0,script=no,downscript=no -device e1000,netdev=n0 &
