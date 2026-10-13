@@ -73,6 +73,22 @@ class AddResp_(IdlStruct, typename="example_interfaces::srv::dds_::AddTwoInts_Re
     sum: types.int64
 
 
+# Jazzy's type hash of std_msgs/msg/String (what rmw puts in USER_DATA)
+STRING_HASH = "RIHS01_df668c740482bbd48fb39d76a70dfd4bd59db1288021743503259e948f6b1a18"
+
+
+def holyc_typehash(reader):
+    """typehash=... from the USER_DATA of the writer matched to reader."""
+    for h in reader.get_matched_publications():
+        ep = reader.get_matched_publication_data(h)
+        ud = ep.qos[Policy.Userdata] if ep and ep.qos else None
+        data = bytes(ud.data) if ud else b""
+        for kv in data.split(b";"):
+            if kv.startswith(b"typehash="):
+                return kv[9:].decode()
+    return None
+
+
 def main():
     timeout = float(sys.argv[1]) if len(sys.argv) > 1 else 20.0
     rel = Qos(Policy.Reliability.Reliable(max_blocking_time=duration(milliseconds=100)))
@@ -97,6 +113,7 @@ def main():
     served, answers = 0, 0
     big_w.write(String_(data="B" * 5000))
     got_chatter, got_big, saw_node, n = 0, 0, False, 0
+    typehash = None
     end = time.time() + timeout
     while time.time() < end:
         for s in chatter.take(N=100):
@@ -118,17 +135,21 @@ def main():
         for a in cli_rr.take(N=10):
             if hasattr(a, "sum") and a.client == 777 and a.sum == a.seq + 100:
                 answers += 1
+        if typehash is None:
+            typehash = holyc_typehash(chatter)
         n += 1
         from_cy.write(String_(data="cyclone %d" % n))
         only.write(String_(data="only %d" % n))
         if cli_rq.get_matched_subscriptions():
             cli_rq.write(AddReq_(client=777, seq=n, a=n, b=100))
-        if got_chatter >= 5 and got_big and saw_node and served and answers and n > 40:
+        if got_chatter >= 5 and got_big and saw_node and served and answers and typehash and n > 40:
             break
         time.sleep(0.05)
-    ok = got_chatter >= 5 and got_big >= 1 and saw_node and served >= 1 and answers >= 1
-    print("RESULT cyclone: chatter=%d holyc_big=%d saw_holyc_node=%s served=%d holyc_answers=%d -> %s"
-          % (got_chatter, got_big, saw_node, served, answers, "OK" if ok else "FAIL"), flush=True)
+    hash_ok = typehash == STRING_HASH
+    ok = got_chatter >= 5 and got_big >= 1 and saw_node and served >= 1 and answers >= 1 and hash_ok
+    print("RESULT cyclone: chatter=%d holyc_big=%d saw_holyc_node=%s served=%d holyc_answers=%d "
+          "typehash=%s -> %s" % (got_chatter, got_big, saw_node, served, answers, hash_ok,
+                                 "OK" if ok else "FAIL"), flush=True)
     return 0 if ok else 1
 
 

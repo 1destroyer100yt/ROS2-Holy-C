@@ -10,6 +10,7 @@ Cd(__DIR__);;
 #include "Core/Vec.HC"
 #include "Core/Str.HC"
 #include "Core/File.HC"
+#include "Core/Sha256.HC"
 #include "Core/Ring.HC"
 #include "Core/Map.HC"
 #include "Core/Time.HC"
@@ -20,4 +21,5 @@ Cd(__DIR__);;
 #include "Msg/Msg.HC"
 #include "Msg/Cdr.HC"
 #include "Msg/Gen.HC"
+#include "Msg/Hash.HC"
 #include "Plugin/PluginLib.HC"

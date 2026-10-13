@@ -383,7 +383,9 @@ U8 *RosBagMetadata(CRosBag *bag)
     RosStrBufAdd(sb,"\n        type: ");
     RosStrBufAdd(sb,c->type);
     RosStrBufAdd(sb,"\n        serialization_format: cdr\n        offered_qos_profiles: []\n");
-    RosStrBufAdd(sb,"        type_description_hash: \"\"\n      message_count: ");
+    RosStrBufAdd(sb,"        type_description_hash: ");
+    RosStrBufAdd(sb,RosTypeHash(c->t));
+    RosStrBufAdd(sb,"\n      message_count: ");
     RosStrBufAddI64(sb,c->count);
     RosStrBufAddC(sb,'\n');
   }

@@ -71,6 +71,13 @@ def read(path):
     if len(tf) != 2 or tf[1][1].transforms[0].child_frame_id != "base_link" or \
             tf[1][1].transforms[0].transform.translation.x != 2.0:
         bad.append("tf")
+    # Jazzy type hashes in metadata.yaml
+    meta = (Path(path) / "metadata.yaml").read_text()
+    for t in ("geometry_msgs/msg/Twist", "std_msgs/msg/String", "tf2_msgs/msg/TFMessage"):
+        line = "type: %s\n        serialization_format: cdr\n        offered_qos_profiles: []\n" \
+               "        type_description_hash: %s\n" % (t, ts.hash_rihs01(t))
+        if line not in meta:
+            bad.append("type hash of " + t)
     # and with the mcap package's own reader (checks the summary + footer)
     from mcap.reader import make_reader
     f = sorted(Path(path).glob("*.mcap"))[0]

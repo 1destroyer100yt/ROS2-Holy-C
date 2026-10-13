@@ -315,7 +315,7 @@ What we do instead is **better**, not just a workaround:
   - [x] Golden tests: all 196 message/request/response types decode, re-encode byte-identical,
         copy and print correctly against an independent serializer (rosbags)
   - [x] F64 printing exact (Burger & Dybvig, `Dtoa.HC`), identical to Python repr
-  - [ ] Jazzy type hashes (RIHS01) - needed for Jazzy discovery in Phase 7
+  - [x] Jazzy type hashes (RIHS01): `src/Msg/Hash.HC`, checked against rosbags for every message
   - [ ] Actions (.action files), wstring
   - [ ] First compile on real TempleOS (watch: long string literals in TestGolden.HC,
         `offset()` in TestLayout.HC, `FileRead`/`FileWrite` in File.HC)
@@ -355,7 +355,8 @@ What we do instead is **better**, not just a workaround:
   - [x] ROS<->DDS bridge (`rt/` names, dds_ type names, ros_discovery_info)
   - [x] Interop test against real Cyclone DDS over loopback with packet loss (tools/ddstest)
   - [x] Services over DDS (rmw_cyclonedds request header), remote nodes/topics/services in the CLI
-  - [ ] rmw_fastrtps-style services, Jazzy type hashes
+  - [x] Jazzy RIHS01 type hashes in SEDP user data and bag metadata (match rosbags for every message)
+  - [ ] rmw_fastrtps-style services
   - [x] IP stack (Ethernet/ARP/IPv4+fragments/UDP/ICMP/IGMP), tested against Linux over TAP
   - [x] Full stack over our IP stack + multicast against Cyclone DDS (TAP)
   - [x] SLIP serial link (tested over a pty against Linux) - this is also Phase 6, in pure HolyC

@@ -84,6 +84,7 @@ class CRtpsRemoteEp	//a remote writer or reader learned from SEDP
 {
   CRtpsGuid guid;
   U8 *topic,*type;
+  U8 *type_hash;	//"RIHS01_..." from USER_DATA (Jazzy+), or NULL
   CRtpsLoc loc;
   Bool is_writer,reliable,transient;
 };
@@ -742,6 +743,7 @@ U0 RtpsRemoteEpFree(CRtpsRemoteEp *e)
 {
   Free(e->topic);
   Free(e->type);
+  Free(e->type_hash);
   Free(e);
 }
 
@@ -801,7 +803,7 @@ U8 *RtpsSpdpData(CRtpsPart *pt,I64 *len)
   RtpsW32(b,RTPS_LEASE_NS/ROS_NS_PER_SEC);
   RtpsW32(b,0);
   RtpsPlEnd(b,at);
-  RtpsPlStr(b,PID_USER_DATA,"enclave=/;");
+  RtpsPlOctets(b,PID_USER_DATA,"enclave=/;");
   if (pt->name)
     RtpsPlStr(b,PID_ENTITY_NAME,pt->name);
   RtpsPlEndList(b);
@@ -960,12 +962,16 @@ U0 RtpsReaderUnmatchGuid(CRtpsReader *r,CRtpsGuid *g)
 
 //---- SEDP (endpoint discovery)
 
+//Jazzy puts "typehash=RIHS01_...;" in every endpoint's USER_DATA. The
+//bridge sets this to look the hash up from a DDS type name.
+U8 *(*rtps_hook_type_hash)(U8 *dds_type)=NULL;
+
 U8 *RtpsSedpData(CRtpsPart *pt,CRtpsGuid *g,U8 *topic,U8 *type,Bool reliable,
 	Bool transient,I64 *len)
 {
   CRosBuf *b=RosBufNew();
   I64 at;
-  U8 *d;
+  U8 *d,*h,*ud;
   RtpsPlBegin(b);
   RtpsPlGuid(b,PID_ENDPOINT_GUID,g->prefix,g->eid);
   RtpsPlStr(b,PID_TOPIC_NAME,topic);
@@ -985,6 +991,14 @@ U8 *RtpsSedpData(CRtpsPart *pt,CRtpsGuid *g,U8 *topic,U8 *type,Bool reliable,
     RtpsW32(b,0);
   RtpsPlEnd(b,at);
   RtpsPlLoc(b,PID_UNICAST_LOCATOR,&pt->user_loc);
+  if (rtps_hook_type_hash) {
+    h=(*rtps_hook_type_hash)(type);
+    if (h) {
+      ud=MStrPrint("typehash=%s;",h);
+      RtpsPlOctets(b,PID_USER_DATA,ud);
+      Free(ud);
+    }
+  }
   RtpsPlEndList(b);
   *len=b->len;
   d=b->data;
@@ -1072,6 +1086,10 @@ U0 RtpsOnSedp(CRtpsReader *r,CRtpsGuid *from,CRtpsChange *c)
         break;
       case PID_TOPIC_NAME: Free(e->topic); e->topic=RtpsPlReadStr(&v); break;
       case PID_TYPE_NAME: Free(e->type); e->type=RtpsPlReadStr(&v); break;
+      case PID_USER_DATA:
+        Free(e->type_hash);
+        e->type_hash=RtpsPlReadUserKey(&v,"typehash");
+        break;
       case PID_RELIABILITY:
         kind=RtpsRN(&v,4);
         e->reliable=kind==2;

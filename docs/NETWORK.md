@@ -21,6 +21,12 @@ RosDdsStop;
 - **ROS 2 conventions:** `rt/` topic prefix, `pkg::msg::dds_::Type_` type names, XCDR1 payloads,
   and `ros_discovery_info` so `ros2 node list` shows our nodes. The participant's user data is
   `enclave=/;`.
+- **Jazzy type hashes:** every endpoint's user data carries `typehash=RIHS01_...;`, like rmw
+  does in Jazzy (`ros2 topic info -v` shows it). The hashes come from `src/Msg/Hash.HC`
+  (SHA-256 in `src/Core/Sha256.HC`) and match rosbags for all 162 message types we ship
+  (`tests/TestHashGolden.HC`, made by `tools/ifacegen/make_hashes.py`). Service hashes follow
+  rosidl's request/response/event layout but haven't been checked against a real install yet.
+  Remote endpoints' hashes are kept in `CRtpsRemoteEp.type_hash`.
 - **Services:** `rq/<name>Request` and `rr/<name>Reply` with the `rmw_cyclonedds` request header
   (client id + sequence number), in both directions. A client counts as ready only once the
   remote request reader has acknowledged us, which avoids the DDS discovery race that drops
@@ -37,6 +43,7 @@ RosDdsStop;
 - a 100 KB message from us (fragmented) and a 5 KB transient-local message from Cyclone
   (fragmented, delivered to a late joiner)
 - Cyclone reads our `ros_discovery_info` and finds our node
+- Cyclone sees the right type hash in our publication's user data
 
 `pip install cyclonedds` enables it; `tools/check.sh` and CI run it.
 
@@ -93,7 +100,5 @@ can read, and long file names matter (`TestGolden.HC` etc.).
 ## Not done yet
 - `rmw_fastrtps`-style services (Fast DDS keeps the request id in inline QoS instead of a header).
   Topics work with every vendor.
-- Jazzy type hashes in endpoint user data. These aren't needed for DDS matching, but
-  `ros2 topic info -v` shows them.
 - Running the e1000 driver on a real TempleOS / QEMU (it compiles in our lint, nothing more).
 - DHCP (addresses are static for now).

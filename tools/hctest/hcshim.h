@@ -108,8 +108,17 @@ static U8 *HcVFormat(const U8 *fmt, va_list ap)
           n = snprintf(tmp, sizeof tmp, spec, va_arg(ap, F64)); break;
         case 's': {
           const char *sv = va_arg(ap, const char *);
+          if (!sv) sv = "(null)";
+          if (sl == 1) {  /* plain %s: any length (tmp would cut it off) */
+            size_t k = strlen(sv);
+            if (len + k + 1 > cap) { cap = (len + k + 1) * 2; out = realloc(out, cap); }
+            memcpy(out + len, sv, k);
+            len += k;
+            f++;
+            continue;
+          }
           strcpy(spec + sl, "s");
-          n = snprintf(tmp, sizeof tmp, spec, sv ? sv : "(null)"); break;
+          n = snprintf(tmp, sizeof tmp, spec, sv); break;
         }
         default:
           n = 0;

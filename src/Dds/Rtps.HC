@@ -221,6 +221,15 @@ U0 RtpsPlStr(CRosBuf *b,I64 pid,U8 *s)
   RtpsPlEnd(b,at);
 }
 
+//sequence<octet> holding s (no NUL), e.g. USER_DATA "key=value;" pairs.
+U0 RtpsPlOctets(CRosBuf *b,I64 pid,U8 *s)
+{
+  I64 at=RtpsPlParam(b,pid),n=StrLen(s);
+  RtpsW32(b,n);
+  RtpsWBytes(b,s,n);
+  RtpsPlEnd(b,at);
+}
+
 U0 RtpsPlGuid(CRosBuf *b,I64 pid,U8 *prefix,I64 eid)
 {
   I64 at=RtpsPlParam(b,pid);
@@ -336,6 +345,29 @@ U8 *RtpsPlReadStr(CRtpsIn *v)
   s=MAlloc(n);
   MemCpy(s,p,n);
   return s;
+}
+
+//The value of key in a USER_DATA "k1=v1;k2=v2;" octet sequence (new), or NULL.
+U8 *RtpsPlReadUserKey(CRtpsIn *v,U8 *key)
+{
+  I64 n=RtpsRN(v,4),i,k=StrLen(key),j;
+  U8 *p=RtpsRBytes(v,n),*s;
+  if (!p)
+    return NULL;
+  i=0;
+  while (i+k<n) {
+    if (!MemCmp(p+i,key,k) && p[i+k]=='=' && (!i || p[i-1]==';')) {
+      j=i+k+1;
+      while (j<n && p[j]!=';' && p[j])
+        j++;
+      s=MAlloc(j-i-k);
+      MemCpy(s,p+i+k+1,j-i-k-1);
+      s[j-i-k-1]=0;
+      return s;
+    }
+    i++;
+  }
+  return NULL;
 }
 
 U0 RtpsPlReadLoc(CRtpsIn *v,CRtpsLoc *l)

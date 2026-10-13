@@ -18,6 +18,8 @@ Cd(__DIR__);;
 #include "TestPlugin.HC"
 #include "TestTf.HC"
 #include "TestBag.HC"
+#include "TestHashGolden.HC"
+#include "TestHash.HC"
 
 I64 RosTestsRun()
 {
@@ -33,5 +35,6 @@ I64 RosTestsRun()
   TestPlugin();
   TestTf();
   TestBag();
+  TestHash();
   return RosTestSummary();
 }
