@@ -216,3 +216,168 @@ CRosVec *RosYamlFlatten(U8 *text)
   }
   return out;
 }
+
+//Skip a quoted string or a balanced [...] / {...} starting at s[*i].
+U0 RosYamlSkipValue(U8 *s,I64 *i)
+{
+  I64 depth=0;
+  U8 q=0;
+  while (s[*i]) {
+    if (q) {
+      if (s[*i]==q)
+        q=0;
+    } else if (s[*i]=='\'' || s[*i]=='"')
+      q=s[*i];
+    else if (s[*i]=='[' || s[*i]=='{')
+      depth++;
+    else if (s[*i]==']' || s[*i]=='}') {
+      if (!depth)
+        return;
+      depth--;
+      if (!depth) {
+        *i=*i+1;
+        return;
+      }
+    } else if (s[*i]==',' && !depth)
+      return;
+    *i=*i+1;
+  }
+}
+
+//Skip one space-separated token: 'quoted', [list], {map} or plain.
+U0 RosYamlSkipToken(U8 *s,I64 *i)
+{
+  U8 q;
+  I64 depth=0;
+  if (s[*i]=='\'' || s[*i]=='"') {
+    q=s[*i];
+    *i=*i+1;
+    while (s[*i] && s[*i]!=q)
+      *i=*i+1;
+    if (s[*i])
+      *i=*i+1;
+  } else if (s[*i]=='[' || s[*i]=='{') {
+    q=0;
+    while (s[*i]) {
+      if (q) {
+        if (s[*i]==q)
+          q=0;
+      } else if (s[*i]=='\'' || s[*i]=='"')
+        q=s[*i];
+      else if (s[*i]=='[' || s[*i]=='{')
+        depth++;
+      else if (s[*i]==']' || s[*i]=='}') {
+        depth--;
+        if (!depth) {
+          *i=*i+1;
+          break;
+        }
+      }
+      *i=*i+1;
+    }
+  }
+  while (s[*i] && !RosIsSpace(s[*i]))
+    *i=*i+1;
+}
+
+Bool RosYamlFlowMap(U8 *s,I64 *i,U8 *prefix,CRosVec *out)
+{
+  I64 k0,v0;
+  U8 *key,*val,*path;
+  CRosStrBuf *sb;
+  while (RosIsSpace(s[*i]))
+    *i=*i+1;
+  if (s[*i]!='{')
+    return FALSE;
+  *i=*i+1;
+  while (TRUE) {
+    while (RosIsSpace(s[*i]) || s[*i]==',')
+      *i=*i+1;
+    if (s[*i]=='}') {
+      *i=*i+1;
+      return TRUE;
+    }
+    if (!s[*i])
+      return FALSE;
+    k0=*i;
+    while (s[*i] && s[*i]!=':' && s[*i]!='}')
+      *i=*i+1;
+    if (s[*i]!=':')
+      return FALSE;
+    val=RosStrSub(s,k0,*i-k0);
+    key=RosStrTrim(val);
+    Free(val);
+    *i=*i+1;
+    sb=RosStrBufNew();
+    if (prefix) {
+      RosStrBufAdd(sb,prefix);
+      RosStrBufAddC(sb,'.');
+    }
+    RosStrBufAdd(sb,key);
+    path=RosStrBufTake(sb);
+    Free(key);
+    while (RosIsSpace(s[*i]))
+      *i=*i+1;
+    if (s[*i]=='{') {
+      if (!RosYamlFlowMap(s,i,path,out)) {
+        Free(path);
+        return FALSE;
+      }
+    } else {
+      v0=*i;
+      RosYamlSkipValue(s,i);
+      val=RosStrSub(s,v0,*i-v0);
+      RosYamlAdd(out,path,RosStrTrim(val));
+      Free(val);
+    }
+    Free(path);
+  }
+  return FALSE;
+}
+
+//"{linear: {x: 0.5}, name: 'a, b', v: [1, 2]}" -> items
+//("linear.x","0.5"), ("name","'a, b'"), ("v","[1, 2]"). Also takes
+//the simpler "linear.x=0.5 name=bob" form. NULL if it can't parse.
+CRosVec *RosYamlFlowFlatten(U8 *text)
+{
+  CRosVec *out=RosVecNew(8);
+  U8 *s=RosStrTrim(text),*path,*val;
+  I64 i=0,a,eq;
+  Bool ok=TRUE;
+  if (!s[0]) {
+  } else if (s[0]=='{') {
+    ok=RosYamlFlowMap(s,&i,NULL,out);
+    while (ok && RosIsSpace(s[i]))
+      i++;
+    if (s[i])
+      ok=FALSE;
+  } else {
+    while (ok && s[i]) {
+      while (RosIsSpace(s[i]))
+        i++;
+      if (!s[i])
+        break;
+      a=i;
+      while (s[i] && s[i]!='=' && !RosIsSpace(s[i]))
+        i++;
+      if (s[i]!='=') {
+        ok=FALSE;
+        break;
+      }
+      eq=i;
+      i++;
+      RosYamlSkipToken(s,&i);
+      path=RosStrSub(s,a,eq-a);
+      val=RosStrSub(s,eq+1,i-eq-1);
+      RosYamlAdd(out,path,val);
+      Free(path);
+    }
+  }
+  Free(s);
+  if (!ok) {
+    StrCpy(ros_yaml_error,"can't read values");
+    RosYamlFree(out);
+    return NULL;
+  }
+  return out;
+}

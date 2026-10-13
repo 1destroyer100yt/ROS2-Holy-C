@@ -333,7 +333,14 @@ What we do instead is **better**, not just a workaround:
   - [x] Examples: TalkerListener (two TempleOS tasks), AddTwoInts, ParamDemo
   - [ ] Multi-threaded executor (worker tasks on other cores)
   - [ ] Creating/destroying entities from a task other than the one spinning that node is not safe yet
-- [ ] Phase 4 tools
+- [x] Phase 4 tools (`src/Tools/`, docs/TOOLS.md)
+  - [x] node list/info, topic list/info/echo/pub/hz, service list/call, param list/get/set/dump
+        (through parameter services), interface list/show/proto
+  - [x] Launch: nodes with names, namespaces, remaps, params; one task per node or one shared executor
+  - [x] Turtlesim: same topics/services as ROS 2, pen trail, spawn/kill/clear/reset/teleport,
+        TempleOS drawing + arrow-key teleop (VERIFY on real install); TurtleSquare launch demo
+  - [ ] DolDoc clickable output (topic names that open an echo)
+  - [ ] ros2 bag (Phase 8)
 - [ ] Phase 5 plugins (finish + hot reload tested in VM)
 - [ ] Phase 6 serial bridge
 - [ ] Phase 7 networking + RTPS

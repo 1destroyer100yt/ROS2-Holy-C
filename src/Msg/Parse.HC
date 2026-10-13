@@ -350,7 +350,12 @@ CRosSrvType *RosSrvDefine(U8 *name,U8 *text)
     return NULL;
   }
   req_text=RosStrSub(text,0,cut);
-  resp_text=StrNew(text+cut+3);
+  cut+=3;
+  if (text[cut]=='\r')
+    cut++;
+  if (text[cut]=='\n')
+    cut++;
+  resp_text=StrNew(text+cut);
   st=CAlloc(sizeof(CRosSrvType));
   st->name=StrNew(name);
   sb=RosStrBufNew();

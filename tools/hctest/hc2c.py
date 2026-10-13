@@ -120,7 +120,7 @@ def lint(lines):
     errs = []
     prev = None
     for f, no, text, host_only in lines:
-        if not host_only:
+        if host_only is not True:
             code = strip_strings(text).strip()
             if prev and prev[2].endswith('"') and code.startswith('"') or re.search(r'"\s+"', code):
                 errs.append("%s:%d: adjacent string literals - write one literal\n    %s" % (f, no, text.strip()))
@@ -191,6 +191,7 @@ def gather(path, seen=None):
                 skip = False
                 continue
             if skip:
+                out.append((rel, no, line.rstrip("\n"), "skip"))  # linted, not compiled
                 continue
             if s.startswith("//@host:"):
                 out.append((rel, no, line.split("//@host:", 1)[1].rstrip("\n"), True))
@@ -208,6 +209,8 @@ def gather(path, seen=None):
 def to_c(lines, main=None):
     src = []
     for f, no, text, host in lines:
+        if host == "skip":
+            continue
         if not host:
             text = text.replace("$$", "$")  # what the DolDoc file layer does in TempleOS
             text = int64_literals(text)

@@ -85,6 +85,8 @@ class CRosNode
   U8 *rosout_pub;	//CRosPub *
   U8 *param_events_pub;	//CRosPub *
   CRosExec *exec;	//executor it's spinning in, if any
+  U0 (*on_del)(CRosNode *n,U8 *user);	//called first thing in RosNodeDel
+  U8 *on_del_user;
   I64 log_level;
   Bool dead;
 };

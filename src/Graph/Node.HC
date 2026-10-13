@@ -124,11 +124,21 @@ U0 RosNodeWarn(CRosNode *n,U8 *fmt,...)  {RosNodeLogJoin(n,ROS_LOG_WARN,fmt,argc
 U0 RosNodeError(CRosNode *n,U8 *fmt,...) {RosNodeLogJoin(n,ROS_LOG_ERROR,fmt,argc,argv);}
 //@host-skip-end
 
+//Run cb(n,user) when the node is deleted, before its publishers etc.
+//go away: the place to free state you hung on the node. One per node.
+U0 RosNodeOnDel(CRosNode *n,U0 (*cb)(CRosNode *n,U8 *user),U8 *user)
+{
+  n->on_del=cb;
+  n->on_del_user=user;
+}
+
 //Destroy a node and everything it made.
 U0 RosNodeDel(CRosNode *n)
 {
   if (!n)
     return;
+  if (n->on_del)
+    (*n->on_del)(n,n->on_del_user);
   RosParamNodeFini(n);
   while (n->pubs->len)
     RosPubDel(RosVecGetI64(n->pubs,n->pubs->len-1));

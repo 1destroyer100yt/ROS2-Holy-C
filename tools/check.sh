@@ -21,6 +21,7 @@ python3 tools/hctest/hc2c.py run examples/MsgDemo.HC --main MsgDemo --leaks > /d
 python3 tools/hctest/hc2c.py run examples/TalkerListener.HC --main TalkerListenerHost --leaks > /dev/null
 python3 tools/hctest/hc2c.py run examples/AddTwoInts.HC --main AddTwoIntsHost --leaks > /dev/null
 python3 tools/hctest/hc2c.py run examples/ParamDemo.HC --main ParamDemoHost --leaks > /dev/null
+python3 tools/hctest/hc2c.py run examples/TurtleSquare.HC --main TurtleSquareHost --leaks > /dev/null
 echo "== threads (publishers + executor on different threads, ThreadSanitizer)"
 python3 tools/hctest/hc2c.py c Load.HC -o "$tmp/libg.c"
 gcc -O1 -g -fsanitize=thread -w -fwrapv -include "$tmp/libg.c" tools/hctest/threads_check.c -o "$tmp/thr" -lpthread -lm

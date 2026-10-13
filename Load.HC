@@ -10,4 +10,6 @@ Cd(__DIR__);;
 #include "interfaces/Load.HC"
 Cd(__DIR__);;
 #include "src/Graph/Load.HC"
+Cd(__DIR__);;
+#include "src/Tools/Load.HC"
 #endif

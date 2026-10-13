@@ -13,6 +13,7 @@ Cd(__DIR__);;
 #include "TestLayout.HC"
 #include "TestGolden.HC"
 #include "TestGraph.HC"
+#include "TestTools.HC"
 
 I64 RosTestsRun()
 {
@@ -24,5 +25,6 @@ I64 RosTestsRun()
   TestLayout();
   TestGolden();
   TestGraph();
+  TestTools();
   return RosTestSummary();
 }
