@@ -13,3 +13,16 @@ jobs:
         run: sudo -E env "PATH=$PATH" tools/nettest/run.sh && sudo -E env "PATH=$PATH" tools/nettest/run.sh slip
       - name: DDS over our own IP stack with multicast (TAP, needs root)
         run: sudo -E env "PATH=$PATH" tools/ddstest/run.sh tap
+  ros2:
+    # The HolyC stack against a real ROS 2 Jazzy (Fast DDS and Cyclone DDS)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: tools/ros2test/env.yml
+          cache-environment: true
+      - name: ros2 CLI <-> HolyC, HolyC -> Python nodes, rosbag2 both ways
+        shell: bash -el {0}
+        run: ROS_SETUP=$CONDA_PREFIX/setup.bash tools/ros2test/run.sh
+

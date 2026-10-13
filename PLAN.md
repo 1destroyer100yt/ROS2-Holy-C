@@ -361,7 +361,10 @@ What we do instead is **better**, not just a workaround:
   - [x] Interop test against real Cyclone DDS over loopback with packet loss (tools/ddstest)
   - [x] Services over DDS (rmw_cyclonedds request header), remote nodes/topics/services in the CLI
   - [x] Jazzy RIHS01 type hashes in SEDP user data and bag metadata (match rosbags for every message)
-  - [ ] rmw_fastrtps-style services
+  - [x] rmw_fastrtps-style services (related sample identity in inline QoS)
+  - [x] Tested against a real ROS 2 Jazzy (RoboStack) with Fast DDS and Cyclone DDS: ros2 CLI on
+        HolyC nodes (topics, services, actions, params, type hashes), HolyC calling Python nodes,
+        rosbag2 both ways (tools/ros2test, also in CI)
   - [x] IP stack (Ethernet/ARP/IPv4+fragments/UDP/ICMP/IGMP), tested against Linux over TAP
   - [x] Full stack over our IP stack + multicast against Cyclone DDS (TAP)
   - [x] SLIP serial link (tested over a pty against Linux) - this is also Phase 6, in pure HolyC

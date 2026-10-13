@@ -27,8 +27,11 @@ RosDdsStop;
   (`tests/TestHashGolden.HC`, made by `tools/ifacegen/make_hashes.py`). Service hashes follow
   rosidl's request/response/event layout but haven't been checked against a real install yet.
   Remote endpoints' hashes are kept in `CRtpsRemoteEp.type_hash`.
-- **Services:** `rq/<name>Request` and `rr/<name>Reply` with the `rmw_cyclonedds` request header
-  (client id + sequence number), in both directions. A client counts as ready only once the
+- **Services:** `rq/<name>Request` and `rr/<name>Reply`, both ways, in both RMW dialects:
+  `rmw_cyclonedds` puts a {client id, sequence number} header in the payload; `rmw_fastrtps`
+  (Jazzy's default) sends plain payloads and matches replies through a related sample identity
+  in inline QoS (PID 0x0083). We answer each request the way it came and call a service the way
+  its machine's DDS does (Fast DDS = vendor eProsima in SPDP). A client counts as ready only once the
   remote request reader has acknowledged us, which avoids the DDS discovery race that drops
   the first request.
 - **CLI sees other machines:** `RosNodeList`, `RosTopicList`, `RosServiceList` and
@@ -36,6 +39,18 @@ RosDdsStop;
   `ros_discovery_info`.
 
 ## How it's tested
+`tools/ros2test/run.sh` runs against a **real ROS 2 Jazzy** (installed from RoboStack with
+micromamba, see `tools/ros2test/env.yml`; CI does the same), once with `rmw_fastrtps_cpp` and
+once with `rmw_cyclonedds_cpp`:
+- the ros2 command line on a HolyC node: `ros2 node list`, `ros2 topic echo`, `ros2 topic pub`
+  into a HolyC listener, `ros2 topic info -v` (the type hash), `ros2 service call`,
+  `ros2 action send_goal -f`, `ros2 param get`
+- HolyC calling Python nodes: demo_nodes_py's `add_two_ints_server`, action_tutorials_py's
+  `fibonacci_action_server` (its action type defined at run time from the .action text),
+  listening to the Python talker, and seeing them in `RosNodeListStr`
+- rosbag2 both ways: HolyC reads what `ros2 bag record -s mcap` wrote; `ros2 bag info` and
+  `ros2 bag play` work on a bag HolyC wrote
+
 `tools/ddstest/run.sh` runs the whole HolyC stack against **Cyclone DDS** (the DDS behind
 `rmw_cyclonedds`) over loopback, with every 7th outgoing packet deliberately dropped:
 - topics both ways (reliable)
@@ -98,7 +113,5 @@ Getting the files into TempleOS isn't covered here yet. You need a disk image th
 can read, and long file names matter (`TestGolden.HC` etc.).
 
 ## Not done yet
-- `rmw_fastrtps`-style services (Fast DDS keeps the request id in inline QoS instead of a header).
-  Topics work with every vendor.
 - Running the e1000 driver on a real TempleOS / QEMU (it compiles in our lint, nothing more).
 - DHCP (addresses are static for now).

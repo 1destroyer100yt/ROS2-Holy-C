@@ -49,6 +49,9 @@
 #define PID_ENTITY_NAME		0x0062
 #define PID_KEY_HASH		0x0070
 #define PID_STATUS_INFO		0x0071
+#define PID_RELATED_SAMPLE_IDENTITY	0x0083	//DDS-RPC; Fast DDS services use it
+#define PID_CUSTOM_RELATED_SAMPLE_IDENTITY 0x800F	//Fast DDS's older one
+#define RTPS_VENDOR_EPROSIMA	0x010F	//Fast DDS
 
 //builtin endpoint set bits: participant + publications + subscriptions
 #define RTPS_BUILTIN_SET	0x3F

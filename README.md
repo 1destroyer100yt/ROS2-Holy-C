@@ -8,7 +8,8 @@ ROS 2, written from the ground up in pure HolyC for TempleOS.
 - Messages (182 ROS 2 interfaces: messages, services, actions): [interfaces/](interfaces/README.md), demo in [examples/MsgDemo.HC](examples/MsgDemo.HC)
 - Nodes, topics, services, parameters: [docs/GRAPH.md](docs/GRAPH.md), examples in [examples/](examples/)
 - The ros2 command line, actions, launch, turtlesim, rosbag: [docs/TOOLS.md](docs/TOOLS.md)
-- Talking to real ROS 2 over the network (DDS/RTPS): [docs/NETWORK.md](docs/NETWORK.md)
+- Talking to real ROS 2 over the network (DDS/RTPS): [docs/NETWORK.md](docs/NETWORK.md);
+  tested against a real ROS 2 Jazzy with both Fast DDS and Cyclone DDS (`tools/ros2test`)
 - Coordinate frames (tf2): [docs/TF.md](docs/TF.md)
 - RvizLite, a 2D rviz: [docs/RVIZ.md](docs/RVIZ.md)
 

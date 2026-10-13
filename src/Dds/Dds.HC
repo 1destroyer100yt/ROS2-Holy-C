@@ -24,6 +24,10 @@ class CRtpsChange
   U8 key[16];		//key hash (builtin topics), if has_key
   Bool has_key;
   Bool dispose;
+  U8 rel[16];		//related sample identity (Fast DDS services): guid
+  I64 rel_seq;		//  and sequence number (-1 = unknown)
+  Bool has_rel;
+  U8 src[16];		//received: the writer's guid
 };
 
 class CRtpsReaderProxy	//a remote reader one of our writers sends to
@@ -77,6 +81,7 @@ class CRtpsRemotePart
   U8 prefix[12];
   CRtpsLoc meta_uc,user_uc;
   I64 lease_ns,last_ns,endpoints;
+  I64 vendor;		//RTPS vendor id (RTPS_VENDOR_EPROSIMA = Fast DDS)
   U8 *name;
 };
 
@@ -141,7 +146,7 @@ CRosBuf *RtpsMsgNew(CRtpsPart *pt,U8 *dst_prefix)
 U0 RtpsWData(CRosBuf *b,CRtpsWriter *w,I64 rd,CRtpsChange *c,I64 frag,I64 nfrag)
 {
   I64 at,flags=0,q,fsz,off;
-  if (c->has_key)
+  if (c->has_key || c->has_rel)
     flags|=2;		//Q: inline QoS follows
   if (nfrag>1) {
     at=RtpsWSub(b,RTPS_DATA_FRAG,flags);
@@ -172,8 +177,16 @@ U0 RtpsWData(CRosBuf *b,CRtpsWriter *w,I64 rd,CRtpsChange *c,I64 frag,I64 nfrag)
       RtpsW32BE(b,3);	//disposed | unregistered
       RtpsPlEnd(b,q);
     }
-    RtpsPlEndList(b);
   }
+  if (c->has_rel) {
+    q=RtpsPlParam(b,PID_RELATED_SAMPLE_IDENTITY);
+    RtpsWBytes(b,c->rel,16);
+    RtpsW32(b,c->rel_seq>>32);	//high (signed)
+    RtpsW32(b,c->rel_seq&0xFFFFFFFF);	//low
+    RtpsPlEnd(b,q);
+  }
+  if (c->has_key || c->has_rel)
+    RtpsPlEndList(b);
   if (nfrag>1) {
     off=frag*RTPS_FRAG_SIZE;
     fsz=c->len-off;
@@ -365,7 +378,10 @@ CRtpsWriter *RtpsWriterNew(CRtpsPart *pt,I64 eid,U8 *topic,U8 *type,Bool reliabl
 }
 
 //Add a sample. Takes ownership of data. Sends it to matched readers.
-I64 RtpsWrite(CRtpsPart *pt,CRtpsWriter *w,U8 *data,I64 len,U8 *key,Bool dispose)
+//rel (16-byte guid) + rel_seq: a related sample identity to send in
+//inline QoS (Fast DDS service requests and replies), or rel=NULL.
+I64 RtpsWriteRel(CRtpsPart *pt,CRtpsWriter *w,U8 *data,I64 len,U8 *key,Bool dispose,U8 *rel,
+	I64 rel_seq)
 {
   CRtpsChange *c=CAlloc(sizeof(CRtpsChange)),*old;
   CRtpsReaderProxy *rp;
@@ -378,6 +394,11 @@ I64 RtpsWrite(CRtpsPart *pt,CRtpsWriter *w,U8 *data,I64 len,U8 *key,Bool dispose
   if (key) {
     MemCpy(c->key,key,16);
     c->has_key=TRUE;
+  }
+  if (rel) {
+    MemCpy(c->rel,rel,16);
+    c->rel_seq=rel_seq;
+    c->has_rel=TRUE;
   }
   for (i=0;i<w->readers->len;i++) {
     rp=RosVecGetI64(w->readers,i);
@@ -393,6 +414,11 @@ I64 RtpsWrite(CRtpsPart *pt,CRtpsWriter *w,U8 *data,I64 len,U8 *key,Bool dispose
   if (w->reliable)
     w->next_hb_ns=RosTimeSteadyNs();	//heartbeat soon
   return c->seq;
+}
+
+I64 RtpsWrite(CRtpsPart *pt,CRtpsWriter *w,U8 *data,I64 len,U8 *key,Bool dispose)
+{
+  return RtpsWriteRel(pt,w,data,len,key,dispose,NULL,0);
 }
 
 CRtpsChange *RtpsWriterFind(CRtpsWriter *w,I64 seq)
@@ -907,6 +933,10 @@ U0 RtpsOnSpdp(CRtpsReader *r,CRtpsGuid *from,CRtpsChange *c)
         tmp.lease_ns=RtpsRN(&v,4)*ROS_NS_PER_SEC;
         break;
       case PID_ENTITY_NAME: tmp.name=RtpsPlReadStr(&v); break;
+      case PID_VENDORID:
+        tmp.vendor=RtpsRN(&v,1)<<8;
+        tmp.vendor|=RtpsRN(&v,1);
+        break;
     }
   }
   if (domain!=pt->domain || RtpsPrefixEq(g.prefix,pt->prefix) || !tmp.meta_uc.port) {
@@ -933,6 +963,7 @@ U0 RtpsOnSpdp(CRtpsReader *r,CRtpsGuid *from,CRtpsChange *c)
   if (!rp->user_uc.port)
     MemCpy(&rp->user_uc,&rp->meta_uc,sizeof(CRtpsLoc));
   rp->endpoints=tmp.endpoints;
+  rp->vendor=tmp.vendor;
   rp->lease_ns=tmp.lease_ns;
   rp->name=tmp.name;
   rp->last_ns=RosTimeSteadyNs();
@@ -1148,6 +1179,17 @@ U0 RtpsReadInlineQos(CRtpsIn *in,CRtpsChange *c)
     } else if (pid==PID_STATUS_INFO) {
       if (RtpsR32BE(&v)&3)
         c->dispose=TRUE;
+    } else if ((pid==PID_RELATED_SAMPLE_IDENTITY || pid==PID_CUSTOM_RELATED_SAMPLE_IDENTITY) &&
+	!c->has_rel) {
+      p=RtpsRBytes(&v,16);
+      if (p) {
+        MemCpy(c->rel,p,16);
+        c->rel_seq=RtpsRN(&v,4);	//high
+        if (c->rel_seq&0x80000000)
+          c->rel_seq-=0x100000000;
+        c->rel_seq=(c->rel_seq<<32)|RtpsRN(&v,4);
+        c->has_rel=!v.err;
+      }
     }
   }
 }
@@ -1177,6 +1219,11 @@ U0 RtpsOnDataSub(CRtpsPart *pt,CRtpsCtx *x,U8 *body,I64 n,I64 flags,Bool frag)
     return;
   MemSet(&base,0,sizeof(CRtpsChange));
   base.seq=sn;
+  MemCpy(base.src,x->src,12);
+  base.src[12]=(wid>>24)&255;
+  base.src[13]=(wid>>16)&255;
+  base.src[14]=(wid>>8)&255;
+  base.src[15]=wid&255;
   in.pos=4+otq;
   if (flags&2)
     RtpsReadInlineQos(&in,&base);

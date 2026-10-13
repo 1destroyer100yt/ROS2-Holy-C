@@ -1,8 +1,11 @@
-//BridgeSrv: ROS services over DDS, the rmw_cyclonedds way:
-//  request on "rq/<service>Request", reply on "rr/<service>Reply",
-//  each payload starts with {U64 client id, I64 sequence number}.
-//(rmw_fastrtps correlates differently; services between Fast DDS and
-//Cyclone DDS don't work in real ROS 2 either.)
+//BridgeSrv: ROS services over DDS. Request on "rq/<service>Request",
+//reply on "rr/<service>Reply", matched up one of two ways:
+//  rmw_cyclonedds: each payload starts with {U64 client id, I64 seq}
+//  rmw_fastrtps:   plain payloads; the request carries a "related
+//    sample identity" (inline QoS) naming the client's reply reader,
+//    and the reply carries the request's {writer guid, sequence number}
+//We answer each request the way it came, and call a service the way
+//its machine's DDS does (Fast DDS = vendor eProsima).
 
 class CRosDdsSrv	//network side of a local service
 {
@@ -15,12 +18,40 @@ class CRosDdsCli	//network side of a local client
   CRtpsWriter *rq;
   CRtpsReader *rr;
   I64 id;		//goes in every request header
+  CRosVec *fast;	//Fast DDS calls: writer seq, our seq, writer seq, ...
 };
 
 class CRosDdsRemoteReq	//kept on a CRosSrvReq that came from the network
 {
   I64 client,seq;
+  Bool fast;		//Fast DDS style: answer to guid/seq in inline QoS
+  U8 guid[16];
 };
+
+//guid as 16 bytes (prefix + entity id, big endian).
+U0 RtpsGuidBytes(CRtpsGuid *g,U8 *out)
+{
+  MemCpy(out,g->prefix,12);
+  out[12]=(g->eid>>24)&255;
+  out[13]=(g->eid>>16)&255;
+  out[14]=(g->eid>>8)&255;
+  out[15]=g->eid&255;
+}
+
+//Is the participant with this guid prefix running Fast DDS?
+Bool RosDdsIsFast(CRtpsPart *pt,U8 *prefix)
+{
+  CRtpsRemotePart *rp=RtpsRemoteFind(pt,prefix);
+  return rp && rp->vendor==RTPS_VENDOR_EPROSIMA;
+}
+
+//Message (type t) without a header: just the CDR payload.
+CRosBuf *RosDdsPlainSer(CRosType *t,U8 *m)
+{
+  CRosBuf *b=RosBufNew();
+  RosCdrSer(t,m,b);
+  return b;
+}
 
 U8 *RosDdsSrvTopic(U8 *prefix,U8 *name,U8 *suffix)
 {
@@ -64,15 +95,29 @@ U0 RosDdsOnRequest(CRtpsReader *r,CRtpsGuid *from,CRtpsChange *c)
   CRosService *s=r->user;
   CRosSrvReq *q;
   CRosDdsRemoteReq *rr;
-  U8 *m=RosMsgNew(s->st->req);
-  I64 client,seq;
-  if (!RosDdsSrvDeser(s->st->req,c,m,&client,&seq)) {
+  U8 *m=RosMsgNew(s->st->req),zero[16];
+  I64 client=0,seq=0;
+  Bool fast=c->has_rel || RosDdsIsFast(ros_dds,from->prefix),ok;
+  if (fast)
+    ok=RosCdrDeser(s->st->req,c->data,c->len,m);
+  else
+    ok=RosDdsSrvDeser(s->st->req,c,m,&client,&seq);
+  if (!ok) {
     RosMsgDel(s->st->req,m);
     return;
   }
   rr=CAlloc(sizeof(CRosDdsRemoteReq));
   rr->client=client;
   rr->seq=seq;
+  if (fast) {	//answer to the client's reply reader if it said, else to its writer
+    rr->fast=TRUE;
+    rr->seq=c->seq;
+    MemSet(zero,0,16);
+    if (c->has_rel && MemCmp(c->rel,zero,16))
+      MemCpy(rr->guid,c->rel,16);
+    else
+      MemCpy(rr->guid,c->src,16);
+  }
   q=CAlloc(sizeof(CRosSrvReq));
   q->req=m;
   q->remote=rr;
@@ -90,9 +135,15 @@ U0 RosDdsSrvReply(CRosService *s,CRosSrvReq *q,U8 *resp)
   CRosBuf *b;
   if (!pt || !ds)
     return;
-  b=RosDdsSrvSer(s->st->resp,resp,rr->client,rr->seq);
+  if (rr->fast)
+    b=RosDdsPlainSer(s->st->resp,resp);
+  else
+    b=RosDdsSrvSer(s->st->resp,resp,rr->client,rr->seq);
   RosLockGet(&pt->lock);
-  RtpsWrite(pt,ds->rr,b->data,b->len,NULL,FALSE);
+  if (rr->fast)
+    RtpsWriteRel(pt,ds->rr,b->data,b->len,NULL,FALSE,rr->guid,rr->seq);
+  else
+    RtpsWrite(pt,ds->rr,b->data,b->len,NULL,FALSE);
   RosLockPut(&pt->lock);
   b->owned=FALSE;
   RosBufDel(b);
@@ -149,9 +200,27 @@ U0 RosDdsOnReply(CRtpsReader *r,CRtpsGuid *from,CRtpsChange *ch)
   CRosClient *c=r->user;
   CRosDdsCli *dc=c->dds;
   CRosPending *p;
-  U8 *m=RosMsgNew(c->st->resp);
-  I64 client,seq,i;
-  if (!dc || !RosDdsSrvDeser(c->st->resp,ch,m,&client,&seq) || client!=dc->id) {
+  U8 *m=RosMsgNew(c->st->resp),g1[16],g2[16];
+  I64 client,seq=-1,i;
+  Bool ok=FALSE;
+  if (dc && ch->has_rel) {	//Fast DDS: is it about one of our requests?
+    RtpsGuidBytes(&dc->rr->guid,g1);
+    RtpsGuidBytes(&dc->rq->guid,g2);
+    if (!MemCmp(ch->rel,g1,16) || !MemCmp(ch->rel,g2,16)) {
+      RosLockGet(&c->lock);
+      for (i=0;i+1<dc->fast->len;i+=2)
+        if (RosVecGetI64(dc->fast,i)==ch->rel_seq) {
+          seq=RosVecGetI64(dc->fast,i+1);
+          RosVecRemove(dc->fast,i);
+          RosVecRemove(dc->fast,i);
+          break;
+        }
+      RosLockPut(&c->lock);
+      ok=seq>=0 && RosCdrDeser(c->st->resp,ch->data,ch->len,m);
+    }
+  } else if (dc)
+    ok=RosDdsSrvDeser(c->st->resp,ch,m,&client,&seq) && client==dc->id;
+  if (!ok) {
     RosMsgDel(c->st->resp,m);
     return;
   }
@@ -179,6 +248,7 @@ U0 RosDdsCliNew(CRosClient *c)
   if (!pt)
     return;
   dc=CAlloc(sizeof(CRosDdsCli));
+  dc->fast=RosVecNew(8);
   t1=RosDdsSrvTopic("rq",c->name,"Request");
   t2=RosDdsSrvTopic("rr",c->name,"Reply");
   y1=RosDdsTypeName(c->st->req);
@@ -216,6 +286,7 @@ U0 RosDdsCliDel(CRosClient *c)
   c->dds=NULL;
   ros_dds_info_dirty=TRUE;
   RosLockPut(&pt->lock);
+  RosVecDel(dc->fast);
   Free(dc);
 }
 
@@ -246,12 +317,34 @@ Bool RosDdsCliCall(CRosClient *c,I64 seq,U8 *req)
 {
   CRtpsPart *pt=ros_dds;
   CRosDdsCli *dc=c->dds;
+  CRtpsReaderProxy *rp;
   CRosBuf *b;
+  U8 me[16];
+  I64 i,wseq;
+  Bool fast=FALSE;
   if (!pt || !dc)
     return FALSE;
-  b=RosDdsSrvSer(c->st->req,req,dc->id,seq);
   RosLockGet(&pt->lock);
-  RtpsWrite(pt,dc->rq,b->data,b->len,NULL,FALSE);
+  for (i=0;i<dc->rq->readers->len;i++) {	//who serves it?
+    rp=RosVecGetI64(dc->rq->readers,i);
+    if (RosDdsIsFast(pt,rp->guid.prefix))
+      fast=TRUE;
+  }
+  RosLockPut(&pt->lock);
+  if (fast)
+    b=RosDdsPlainSer(c->st->req,req);
+  else
+    b=RosDdsSrvSer(c->st->req,req,dc->id,seq);
+  RosLockGet(&pt->lock);
+  if (fast) {	//tell the server which reader the reply is for (seq unknown: -1,0)
+    RtpsGuidBytes(&dc->rr->guid,me);
+    RosLockGet(&c->lock);
+    wseq=RtpsWriteRel(pt,dc->rq,b->data,b->len,NULL,FALSE,me,-0x100000000);
+    RosVecPushI64(dc->fast,wseq);
+    RosVecPushI64(dc->fast,seq);
+    RosLockPut(&c->lock);
+  } else
+    RtpsWrite(pt,dc->rq,b->data,b->len,NULL,FALSE);
   RosLockPut(&pt->lock);
   b->owned=FALSE;
   RosBufDel(b);

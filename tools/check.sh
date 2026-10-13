@@ -36,6 +36,8 @@ echo "== DDS interop over our own IP stack + multicast (TAP; skipped without roo
 tools/ddstest/run.sh tap
 echo "== rosbag2 MCAP interop with rosbags + mcap (skipped if they aren't installed)"
 tools/bagtest/run.sh
+echo "== against a real ROS 2 Jazzy, Fast DDS + Cyclone DDS (skipped without ros2; ROS_SETUP=...)"
+tools/ros2test/run.sh
 echo "== F32 vs C float"
 python3 tools/hctest/hc2c.py c src/Load.HC -o "$tmp/lib.c"
 gcc -O2 -fwrapv -w -fms-extensions -include "$tmp/lib.c" tools/hctest/f32_check.c -o "$tmp/f32" -lm
