@@ -38,7 +38,8 @@ U0 InteropBig(CMsg_std_msgs_String *m,CInterop *x)
     x->big++;
 }
 
-I64 DdsInterop()
+//peer_ip: where Cyclone is; mcast: use multicast discovery too.
+I64 DdsInteropBody(I64 peer_ip,Bool mcast)
 {
   CRtpsPart *pt;
   CRosNode *n;
@@ -51,14 +52,13 @@ I64 DdsInterop()
   CRtpsWriter *w;
   U8 *s;
   Bool node_ok,topic_ok,srvlist_ok,call_ok;
-  RosIfaceLoadAll();
   MemSet(&x,0,sizeof(CInterop));
-  pt=RosDdsStart(0,FALSE);
+  pt=RosDdsStart(0,mcast);
   if (!pt) {
     Print("can't open RTPS ports\n");
     return 1;
   }
-  RosDdsAddPeer(pt,RosIpParse("127.0.0.1"));
+  RosDdsAddPeer(pt,peer_ip);
 //@host: if (getenv("DDS_DEBUG")) ros_dds_debug=TRUE;
   pt->test_drop_every=7;	//lose every 7th user DATA: reliability must fix it
   n=RosNodeNew("holyc_node",NULL);
@@ -119,4 +119,29 @@ I64 DdsInterop()
   if (x.echoes>=5 && x.from_cy>=5 && x.big>=1 && node_ok && topic_ok && srvlist_ok && call_ok)
     return 0;
   return 1;
+}
+
+//Over the host's sockets, loopback (tools/ddstest/run.sh).
+I64 DdsInterop()
+{
+  RosIfaceLoadAll();
+  return DdsInteropBody(RosIpParse("127.0.0.1"),FALSE);
+}
+
+//Over OUR IP stack on a TAP device, multicast discovery: everything
+//above the network card is what runs on TempleOS (tools/ddstest/run.sh tap).
+I64 DdsInteropTap()
+{
+  CRosNetIf *nif;
+  RosIfaceLoadAll();
+  nif=RosTapOpen("rhc1",RosIpParse("10.78.0.1"));
+  if (!nif) {
+    Print("RESULT holyc: can't open TAP\n");
+    return 1;
+  }
+  RosNetUp(nif);
+  RosNetConfig(RosIpParse("10.78.0.2"),RosIpParse("255.255.255.0"),0);
+  Print("READY\n");
+//@host: fflush(stdout);
+  return DdsInteropBody(RosIpParse("10.78.0.1"),TRUE);
 }

@@ -40,10 +40,23 @@ RosDdsStop;
 
 `pip install cyclonedds` enables it; `tools/check.sh` and CI run it.
 
+## Our own IP stack (`src/Net/`)
+TempleOS has no networking, so `src/Net/Net.HC` is a small IPv4 stack written in HolyC. It covers
+Ethernet, ARP (with a queue of packets waiting for an answer), IPv4 with fragmentation and
+reassembly, UDP, ICMP echo, and IGMPv2 for multicast. Links plug in underneath it: a network
+card driver, a serial line, or a Linux TAP device in tests.
+
+- `tools/nettest/run.sh` tests it against the **Linux kernel** over TAP: ARP, ping, UDP, 30 KB and
+  65 KB datagrams (IP fragmentation both ways), and a burst of 200 datagrams.
+- `tools/ddstest/run.sh tap` runs the **whole stack** (ROS nodes → DDS → RTPS → our UDP/IP/ARP/IGMP
+  → TAP) against Cyclone DDS on the Linux side, with **multicast discovery**. Everything above the
+  network card is the code TempleOS runs.
+
+Both need root for the TAP device. CI runs them with sudo.
+
 ## Not done yet
 - `rmw_fastrtps`-style services (Fast DDS keeps the request id in inline QoS instead of a header).
   Topics work with every vendor.
 - Jazzy type hashes in endpoint user data. These aren't needed for DDS matching, but
   `ros2 topic info -v` shows them.
-- On TempleOS, UDP needs our own IP stack and a NIC driver (`src/Net`). The code above runs
-  on Linux sockets in tests.
+- A network card driver for TempleOS (next: e1000 for QEMU) and a serial (SLIP) link.

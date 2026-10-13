@@ -14,11 +14,16 @@ import sys
 import time
 from dataclasses import dataclass
 
+# PEER_IFACE / PEER_PEER / PEER_MCAST select loopback (default) or the TAP test
+IFACE = os.environ.get("PEER_IFACE", "127.0.0.1")
+PEER = os.environ.get("PEER_PEER", "127.0.0.1")
+MCAST = os.environ.get("PEER_MCAST", "false")
 os.environ["CYCLONEDDS_URI"] = (
-    "<CycloneDDS><Domain id='any'><General><Interfaces><NetworkInterface address='127.0.0.1'/>"
-    "</Interfaces><AllowMulticast>false</AllowMulticast></General><Discovery><Peers>"
-    "<Peer address='127.0.0.1'/></Peers><ParticipantIndex>auto</ParticipantIndex>"
-    "<MaxAutoParticipantIndex>9</MaxAutoParticipantIndex></Discovery></Domain></CycloneDDS>")
+    "<CycloneDDS><Domain id='any'><General><Interfaces><NetworkInterface address='%s'/>"
+    "</Interfaces><AllowMulticast>%s</AllowMulticast></General><Discovery><Peers>"
+    "<Peer address='%s'/></Peers><ParticipantIndex>auto</ParticipantIndex>"
+    "<MaxAutoParticipantIndex>9</MaxAutoParticipantIndex></Discovery></Domain></CycloneDDS>"
+    % (IFACE, MCAST, PEER))
 
 from cyclonedds.core import Qos, Policy  # noqa: E402
 from cyclonedds.domain import DomainParticipant  # noqa: E402

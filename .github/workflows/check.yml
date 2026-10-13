@@ -5,7 +5,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Cyclone DDS (for the DDS interop test)
+      - name: Install Cyclone DDS (for the DDS interop tests)
         run: python3 -m pip install --break-system-packages cyclonedds || python3 -m pip install cyclonedds
       - name: Host checks (cpp2hc, lint, HolyC unit tests, DDS interop, F32)
         run: tools/check.sh
+      - name: IP stack against the Linux kernel (TAP, needs root)
+        run: sudo -E env "PATH=$PATH" tools/nettest/run.sh
+      - name: DDS over our own IP stack with multicast (TAP, needs root)
+        run: sudo -E env "PATH=$PATH" tools/ddstest/run.sh tap

@@ -356,5 +356,7 @@ What we do instead is **better**, not just a workaround:
   - [x] Interop test against real Cyclone DDS over loopback with packet loss (tools/ddstest)
   - [x] Services over DDS (rmw_cyclonedds request header), remote nodes/topics/services in the CLI
   - [ ] rmw_fastrtps-style services, Jazzy type hashes
-  - [ ] IP stack (Ethernet/ARP/IPv4/UDP/IGMP) + NIC driver for TempleOS
+  - [x] IP stack (Ethernet/ARP/IPv4+fragments/UDP/ICMP/IGMP), tested against Linux over TAP
+  - [x] Full stack over our IP stack + multicast against Cyclone DDS (TAP)
+  - [ ] NIC driver for TempleOS (e1000) and SLIP serial link
 - [ ] Phase 8 tf/rviz-lite/rosbag-lite
