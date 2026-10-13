@@ -159,6 +159,9 @@ class TestTodoMarkers(unittest.TestCase):
     def test_throw(self):
         self.flagged("void f() { throw 3; }", "throw")
 
+    def test_ternary(self):
+        self.flagged("int f(int a) { return a > 0 ? 1 : 2; }", "?:")
+
     def test_string_concat(self):
         self.flagged('void f(std::string a) { std::string b = a + "x"; }', "string '+'")
 

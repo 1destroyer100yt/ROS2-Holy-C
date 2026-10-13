@@ -1,0 +1,134 @@
+/* hcshim.h - stand-ins for the TempleOS built-ins our HolyC code uses,
+ * so the code can be compiled and unit-tested on a normal Linux box.
+ * This is test scaffolding only. It never ships to TempleOS.
+ */
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <stdarg.h>
+#include <math.h>
+#include <time.h>
+
+typedef void U0;
+typedef int8_t I8;
+typedef uint8_t U8;
+typedef int16_t I16;
+typedef uint16_t U16;
+typedef int32_t I32;
+typedef uint32_t U32;
+typedef int64_t I64;
+typedef uint64_t U64;
+typedef double F64;
+typedef int8_t Bool;
+
+#define TRUE 1
+#define FALSE 0
+#define ON 1
+#define OFF 0
+#define pi 3.14159265358979323846
+
+static U8 *MAlloc(I64 n) { return malloc(n ? n : 1); }
+static U8 *CAlloc(I64 n) { return calloc(1, n ? n : 1); }
+static U0 Free(void *p) { free(p); }
+static U8 *MemCpy(void *d, const void *s, I64 n) { return memmove(d, s, n); }
+static U8 *MemSet(void *d, I64 v, I64 n) { return memset(d, (int)v, n); }
+static I64 MemCmp(const void *a, const void *b, I64 n) { return memcmp(a, b, n); }
+static I64 StrLen(const U8 *s) { return s ? (I64)strlen((const char *)s) : 0; }
+static I64 StrCmp(const U8 *a, const U8 *b) { return strcmp((const char *)a, (const char *)b); }
+static I64 StrNCmp(const U8 *a, const U8 *b, I64 n) { return strncmp((const char *)a, (const char *)b, n); }
+static U8 *StrCpy(U8 *d, const U8 *s) { return (U8 *)strcpy((char *)d, (const char *)s); }
+static U8 *StrNew(const U8 *s)
+{
+  if (!s) s = (const U8 *)"";
+  return (U8 *)strdup((const char *)s);
+}
+static I64 ToI64(F64 d) { return (I64)d; }
+static F64 ToF64(I64 i) { return (F64)i; }
+static F64 Abs(F64 d) { return fabs(d); }
+static F64 Sqrt(F64 d) { return sqrt(d); }
+static F64 Floor(F64 d) { return floor(d); }
+static F64 Ceil(F64 d) { return ceil(d); }
+static F64 Pow(F64 a, F64 b) { return pow(a, b); }
+static F64 Sin(F64 d) { return sin(d); }
+static F64 Cos(F64 d) { return cos(d); }
+static F64 Arg(F64 x, F64 y) { return atan2(y, x); }
+static U0 Yield(void) {}
+static U0 Sleep(I64 ms)
+{
+  struct timespec ts = {ms / 1000, (ms % 1000) * 1000000};
+  nanosleep(&ts, NULL);
+}
+static I64 HostNowNs(void)
+{
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  return (I64)ts.tv_sec * 1000000000LL + ts.tv_nsec;
+}
+
+/* HolyC-style formatting: %d/%X/%c take I64, %f takes F64, %s takes U8*.
+ * $...$ DolDoc commands are dropped, $$ becomes $. */
+static U8 *HcVFormat(const U8 *fmt, va_list ap)
+{
+  size_t cap = 256, len = 0;
+  char *out = malloc(cap), spec[64], tmp[512];
+  const char *f = (const char *)fmt;
+  while (*f) {
+    int n = 0;
+    tmp[0] = 0;
+    if (*f == '$') {
+      if (f[1] == '$') { strcpy(tmp, "$"); f += 2; n = 1; }
+      else { const char *e = strchr(f + 1, '$'); f = e ? e + 1 : f + strlen(f); continue; }
+    } else if (*f == '%' && f[1] == '%') {
+      strcpy(tmp, "%"); f += 2; n = 1;
+    } else if (*f == '%') {
+      const char *s = f++;
+      while (*f && strchr("-+ #0123456789.*", *f)) f++;
+      size_t sl = f - s;
+      if (sl > 40) sl = 40;
+      memcpy(spec, s, sl);
+      switch (*f) {
+        case 'd': case 'i': case 'u':
+          strcpy(spec + sl, "lld"); n = snprintf(tmp, sizeof tmp, spec, (long long)va_arg(ap, I64)); break;
+        case 'X': case 'x':
+          strcpy(spec + sl, "llX"); n = snprintf(tmp, sizeof tmp, spec, (long long)va_arg(ap, I64)); break;
+        case 'c':
+          tmp[0] = (char)va_arg(ap, I64); tmp[1] = 0; n = 1; break;
+        case 'f': case 'e': case 'g': case 'n':
+          spec[sl] = *f == 'n' ? 'g' : *f; spec[sl + 1] = 0;
+          n = snprintf(tmp, sizeof tmp, spec, va_arg(ap, F64)); break;
+        case 's': {
+          const char *sv = va_arg(ap, const char *);
+          strcpy(spec + sl, "s");
+          n = snprintf(tmp, sizeof tmp, spec, sv ? sv : "(null)"); break;
+        }
+        default:
+          n = 0;
+      }
+      if (*f) f++;
+    } else {
+      tmp[0] = *f++; tmp[1] = 0; n = 1;
+    }
+    n = (int)strlen(tmp);
+    if (len + n + 1 > cap) { cap = (len + n + 1) * 2; out = realloc(out, cap); }
+    memcpy(out + len, tmp, n);
+    len += n;
+  }
+  out[len] = 0;
+  return (U8 *)out;
+}
+static U8 *MStrPrint(const U8 *fmt, ...)
+{
+  va_list ap; va_start(ap, fmt);
+  U8 *s = HcVFormat(fmt, ap);
+  va_end(ap);
+  return s;
+}
+static U0 Print(const U8 *fmt, ...)
+{
+  va_list ap; va_start(ap, fmt);
+  U8 *s = HcVFormat(fmt, ap);
+  va_end(ap);
+  fputs((char *)s, stdout);
+  free(s);
+}

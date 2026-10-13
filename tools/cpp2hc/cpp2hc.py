@@ -269,6 +269,7 @@ LEFTOVER_CHECKS = [
     (r"\b\w+::\w+", "'::' scope left over - rename or qualify by hand"),
     (r"(?<![\w>])\w+\s*<\s*[\w:]+(\s*,\s*[\w:]+)*\s*>\s*[\w(]", "template use"),
     (r"\bBAD_ARGS\(", "math call with unexpected arguments"),
+    (r"\?", "?: operator - HolyC has none, use if/else"),
     (r"&&", None),  # logical and is fine; listed so the ref check below skips it
 ]
 

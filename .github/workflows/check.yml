@@ -1,0 +1,9 @@
+name: check
+on: [push, pull_request]
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Host checks (cpp2hc, lint, HolyC unit tests, F32)
+        run: tools/check.sh

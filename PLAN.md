@@ -293,8 +293,15 @@ What we do instead is **better**, not just a workaround:
 - [x] Plan written
 - [x] `cpp2hc` converter v0 + tests
 - [x] `PluginLib.HC` + `HcCompat.HC` v0 (needs first compile on real TempleOS)
-- [ ] Phase 0 toolchain + test runner
-- [ ] Phase 1 core library
+- [~] Phase 0 toolchain + test runner
+  - [x] `tests/Run.HC` + `src/Core/Test.HC` test framework (same tests run in TempleOS and on Linux)
+  - [x] Host test loop: `tools/hctest` (HolyC→C + gcc + ASan/UBSan), `tools/check.sh`, GitHub Actions CI
+  - [x] HolyC linter for precedence / `$` / casts / C-isms (`docs/HOLYC_RULES.md`)
+  - [ ] QEMU + TempleOS image script, COM1 capture of test results
+- [x] Phase 1 core library: `F32 Mem Vec Str Ring Map Time Log` with 125 unit tests;
+      F32 checked bit-exact against C across all 2^32 float32 patterns
+  - [ ] First compile + `RosTestsRun;` on real TempleOS (check every `VERIFY` comment, e.g.
+        `GetTSC`/`cnts.time_stamp_freq` in `Time.HC`, `StrPrintJoin` in `Log.HC`)
 - [ ] Phase 2 messages
 - [ ] Phase 3 graph/executor
 - [ ] Phase 4 tools

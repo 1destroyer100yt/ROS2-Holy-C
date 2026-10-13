@@ -113,7 +113,9 @@ U0 PluginMethodAdd(U8 *cls_name,U8 *method,U8 *fp)
 U0 PluginLoad(U8 *filename)
 {
   plugin_cur_file=filename;
+//@host-skip-begin
   ExeFile(filename);
+//@host-skip-end
   plugin_cur_file=NULL;
 }
 
