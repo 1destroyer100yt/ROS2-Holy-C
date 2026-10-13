@@ -53,6 +53,18 @@ static U8 *StrNew(const U8 *s)
   return (U8 *)strdup((const char *)s);
 }
 static I64 ToI64(F64 d) { return (I64)d; }
+/* TempleOS RandU64: here xorshift64*, seeded from the clock and pid */
+static U64 RandU64(void)
+{
+  static U64 s;
+  if (!s) {
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    s = ((U64)ts.tv_nsec << 20) ^ (U64)ts.tv_sec ^ ((U64)getpid() << 40) ^ 0x9E3779B97F4A7C15ULL;
+  }
+  s ^= s >> 12; s ^= s << 25; s ^= s >> 27;
+  return s * 2685821657736338717ULL;
+}
 static F64 ToF64(I64 i) { return (F64)i; }
 static F64 Abs(F64 d) { return fabs(d); }
 static F64 Sqrt(F64 d) { return sqrt(d); }

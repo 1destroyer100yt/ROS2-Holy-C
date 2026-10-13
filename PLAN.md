@@ -316,7 +316,8 @@ What we do instead is **better**, not just a workaround:
         copy and print correctly against an independent serializer (rosbags)
   - [x] F64 printing exact (Burger & Dybvig, `Dtoa.HC`), identical to Python repr
   - [x] Jazzy type hashes (RIHS01): `src/Msg/Hash.HC`, checked against rosbags for every message
-  - [ ] Actions (.action files), wstring
+  - [x] Actions (.action files -> CAct_* classes, golden CDR + hashes from rosbags)
+  - [ ] wstring
   - [ ] First compile on real TempleOS (watch: long string literals in TestGolden.HC,
         `offset()` in TestLayout.HC, `FileRead`/`FileWrite` in File.HC)
 - [x] Phase 3 graph/executor (`src/Graph/`)
@@ -331,6 +332,8 @@ What we do instead is **better**, not just a workaround:
   - [x] /rosout (rcl_interfaces/Log) per node
   - [x] 110 graph tests; ThreadSanitizer stress test (3 publisher threads + executor thread)
   - [x] Examples: TalkerListener (two TempleOS tasks), AddTwoInts, ParamDemo
+  - [x] Actions: server/client over rcl_action's services and topics, cancel policy, result
+        expiry, `ros2 action` CLI, turtlesim rotate_absolute; Cyclone DDS completes a goal on us
   - [ ] Multi-threaded executor (worker tasks on other cores)
   - [ ] Creating/destroying entities from a task other than the one spinning that node is not safe yet
 - [x] Phase 4 tools (`src/Tools/`, docs/TOOLS.md)

@@ -1,4 +1,4 @@
-# Nodes, topics, services and parameters
+# Nodes, topics, services, actions and parameters
 
 Everything lives in `src/Graph/`. Load it all with `#include "~/ROS2-Holy-C/Load.HC"`.
 HolyC has no lambdas or closures, so every callback takes a `user` pointer you pass in when
@@ -53,6 +53,31 @@ CRosClient *c=RosClientNew(n,"add_two_ints",ros_srv_example_interfaces_AddTwoInt
 RosClientCall(c,&req,&OnSum,NULL);           //async: OnSum(resp,seq,user)
 resp=RosClientCallWait(c,exec,&req,timeout); //blocking: spins exec while waiting
 ```
+
+A service callback can answer later: `ticket=RosServiceDefer(s);` inside the callback, then
+`RosServiceReplyLater(s,ticket,resp);` when the answer is ready.
+
+## Actions
+Long-running goals with feedback, wire-compatible with rclcpp/rclpy (`<name>/_action/send_goal`,
+`cancel_goal`, `get_result`, `feedback` and `status`, as rcl_action lays them out):
+```
+Bool OnGoal(CRosActionServer *as,CAct_example_interfaces_Fibonacci_Goal *g,U8 *user)
+{ return g->order<50; }                          //accept or reject (NULL = accept all)
+U0 OnAccepted(CRosGoal *g,U8 *user) { RosGoalExecute(g); ... }   //start the work
+as=RosActionServerNew(n,"fibonacci",ros_act_example_interfaces_Fibonacci,
+                      &OnGoal,NULL,&OnAccepted,NULL);  //NULL cancel callback = allow
+RosGoalFeedback(g,&fb);                          //while working
+if (RosGoalIsCanceling(g)) RosGoalCanceled(g,&res);
+RosGoalSucceed(g,&res);                          //or RosGoalAbort
+
+ac=RosActionClientNew(n,"fibonacci",ros_act_example_interfaces_Fibonacci);
+gh=RosActionSendGoal(ac,&goal,&OnFeedback,&OnResult,user);
+RosActionCancel(gh);
+```
+`.action` files in `interfaces/` generate `CAct_pkg_Name_Goal`, `_Result`, `_Feedback` (and
+the `_SendGoal`/`_GetResult` service types and `_FeedbackMessage`) plus a `ros_act_pkg_Name`
+handle. Results are kept for 15 minutes after a goal ends, like rcl. Turtlesim serves
+`/turtle1/rotate_absolute`. Delete action servers and clients before their node.
 
 ## Parameters
 ```

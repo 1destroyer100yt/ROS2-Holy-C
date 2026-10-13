@@ -21,6 +21,9 @@ The TempleOS shell is a HolyC prompt, so the `ros2` commands are plain functions
 | `ros2 param set /talker rate 5.0` | `RosParamSetCli("/talker","rate","5.0");` |
 | `ros2 param dump /talker` | `RosParamDump("/talker");` |
 | `ros2 interface list` / `show` / `proto` | `RosInterfaceList;` / `RosInterfaceShow("...");` / `RosInterfaceProto("...");` |
+| `ros2 action list` / `-t` | `RosActionList;` / `RosActionListT;` |
+| `ros2 action info /fibonacci` | `RosActionInfo("/fibonacci");` |
+| `ros2 action send_goal --feedback /fibonacci example_interfaces/action/Fibonacci "{order: 5}"` | `RosActionSendGoalCli("/fibonacci","example_interfaces/action/Fibonacci","{order: 5}",TRUE);` (any key cancels) |
 | `ros2 bag record -o bag1 /scan /tf` | `RosBagRecord("~/bag1","/scan /tf",0);` (any key stops; `NULL` = all topics) |
 | `ros2 bag play bag1` / `--rate 2` | `RosBagPlay("~/bag1",1.0);` / `RosBagPlay("~/bag1",2.0);` (`0.0` = as fast as possible) |
 | `ros2 bag info bag1` | `RosBagInfo("~/bag1");` |
@@ -28,6 +31,8 @@ The TempleOS shell is a HolyC prompt, so the `ros2` commands are plain functions
 Values can be YAML flow style (`{linear: {x: 0.5}}`) or `linear.x=0.5 angular.z=1.0`.
 Every command also has a `...Str` version that returns the text instead of printing it.
 The parameter commands go through the node's parameter services, the same way `ros2 param` does.
+Topic and service lists hide names with a part starting with `_` (such as `/fibonacci/_action/...`),
+like ros2 does without `--include-hidden-topics`.
 
 ## Launch
 A launch file is a HolyC file:
@@ -47,7 +52,8 @@ Use `RosNodeOnDel(node,&Cleanup,state)` to free a node's state when the node goe
 ## Turtlesim
 `TurtleSim;` runs turtlesim in the current window. It has the same topics and services as ROS 2:
 `/turtle1/cmd_vel`, `/turtle1/pose`, `/spawn`, `/kill`, `/clear`, `/reset`, `/turtle1/set_pen`,
-`/turtle1/teleport_absolute` and `/turtle1/teleport_relative`. The arrow keys drive turtle1,
+`/turtle1/teleport_absolute` and `/turtle1/teleport_relative`, and the `/turtle1/rotate_absolute`
+action. The arrow keys drive turtle1,
 and Esc quits. `examples/TurtleSquare.HC` is a launch file that starts turtlesim with a node
 that drives the turtle in a square.
 

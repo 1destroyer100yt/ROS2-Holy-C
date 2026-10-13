@@ -73,6 +73,110 @@ class AddResp_(IdlStruct, typename="example_interfaces::srv::dds_::AddTwoInts_Re
     sum: types.int64
 
 
+@dataclass
+class UUID_(IdlStruct, typename="unique_identifier_msgs::msg::dds_::UUID_"):
+    uuid: types.array[types.uint8, 16]
+
+
+@dataclass
+class Time_(IdlStruct, typename="builtin_interfaces::msg::dds_::Time_"):
+    sec: types.int32
+    nanosec: types.uint32
+
+
+@dataclass
+class FibGoal_(IdlStruct, typename="example_interfaces::action::dds_::Fibonacci_Goal_"):
+    order: types.int32
+
+
+@dataclass
+class FibSeq_(IdlStruct, typename="example_interfaces::action::dds_::Fibonacci_Result_"):
+    sequence: types.sequence[types.int32]
+
+
+@dataclass
+class FibFb_(IdlStruct, typename="example_interfaces::action::dds_::Fibonacci_Feedback_"):
+    sequence: types.sequence[types.int32]
+
+
+@dataclass
+class FibSendReq_(IdlStruct, typename="example_interfaces::action::dds_::Fibonacci_SendGoal_Request_"):
+    client: types.uint64
+    seq: types.int64
+    goal_id: UUID_
+    goal: FibGoal_
+
+
+@dataclass
+class FibSendResp_(IdlStruct, typename="example_interfaces::action::dds_::Fibonacci_SendGoal_Response_"):
+    client: types.uint64
+    seq: types.int64
+    accepted: bool
+    stamp: Time_
+
+
+@dataclass
+class FibResReq_(IdlStruct, typename="example_interfaces::action::dds_::Fibonacci_GetResult_Request_"):
+    client: types.uint64
+    seq: types.int64
+    goal_id: UUID_
+
+
+@dataclass
+class FibResResp_(IdlStruct, typename="example_interfaces::action::dds_::Fibonacci_GetResult_Response_"):
+    client: types.uint64
+    seq: types.int64
+    status: types.int8
+    result: FibSeq_
+
+
+@dataclass
+class FibFbMsg_(IdlStruct, typename="example_interfaces::action::dds_::Fibonacci_FeedbackMessage_"):
+    goal_id: UUID_
+    feedback: FibFb_
+
+
+class ActionClient:
+    """A Fibonacci action client the way rcl_action talks on the wire."""
+    PRE = "holyc_fibonacci/_action/"
+    GOAL = bytes(range(1, 17))
+
+    def __init__(self, dp, rel):
+        def ep(kind, name, typ):
+            t = Topic(dp, kind + "/" + self.PRE + name, typ)
+            return (DataWriter if kind == "rq" else DataReader)(dp, t, qos=rel)
+        self.send_w = ep("rq", "send_goalRequest", FibSendReq_)
+        self.send_r = ep("rr", "send_goalReply", FibSendResp_)
+        self.res_w = ep("rq", "get_resultRequest", FibResReq_)
+        self.res_r = ep("rr", "get_resultReply", FibResResp_)
+        self.fb_r = DataReader(dp, Topic(dp, "rt/" + self.PRE + "feedback", FibFbMsg_), qos=rel)
+        self.state, self.feedback, self.result = "start", 0, None
+
+    def step(self):
+        gid = UUID_(uuid=list(self.GOAL))
+        if self.state == "start" and self.send_w.get_matched_subscriptions() and \
+                self.send_r.get_matched_publications() and self.fb_r.get_matched_publications():
+            self.send_w.write(FibSendReq_(client=99, seq=1, goal_id=gid, goal=FibGoal_(order=8)))
+            self.state = "sent"
+        for r in self.send_r.take(N=10):
+            if getattr(r, "client", None) == 99 and r.accepted and self.state == "sent":
+                self.state = "accepted"
+        if self.state == "accepted" and self.res_w.get_matched_subscriptions() and \
+                self.res_r.get_matched_publications():
+            self.res_w.write(FibResReq_(client=99, seq=2, goal_id=gid))
+            self.state = "waiting"
+        for f in self.fb_r.take(N=50):
+            if hasattr(f, "goal_id") and bytes(f.goal_id.uuid) == self.GOAL:
+                self.feedback += 1
+        for r in self.res_r.take(N=10):
+            if getattr(r, "client", None) == 99 and r.seq == 2:
+                self.result = (r.status, list(r.result.sequence))
+                self.state = "done"
+
+    def ok(self):
+        return self.result == (4, [0, 1, 1, 2, 3, 5, 8, 13, 21]) and self.feedback >= 1
+
+
 # Jazzy's type hash of std_msgs/msg/String (what rmw puts in USER_DATA)
 STRING_HASH = "RIHS01_df668c740482bbd48fb39d76a70dfd4bd59db1288021743503259e948f6b1a18"
 
@@ -114,6 +218,7 @@ def main():
     big_w.write(String_(data="B" * 5000))
     got_chatter, got_big, saw_node, n = 0, 0, False, 0
     typehash = None
+    action = ActionClient(dp, rel)
     end = time.time() + timeout
     while time.time() < end:
         for s in chatter.take(N=100):
@@ -135,6 +240,7 @@ def main():
         for a in cli_rr.take(N=10):
             if hasattr(a, "sum") and a.client == 777 and a.sum == a.seq + 100:
                 answers += 1
+        action.step()
         if typehash is None:
             typehash = holyc_typehash(chatter)
         n += 1
@@ -142,14 +248,16 @@ def main():
         only.write(String_(data="only %d" % n))
         if cli_rq.get_matched_subscriptions():
             cli_rq.write(AddReq_(client=777, seq=n, a=n, b=100))
-        if got_chatter >= 5 and got_big and saw_node and served and answers and typehash and n > 40:
+        if got_chatter >= 5 and got_big and saw_node and served and answers and typehash and action.ok() and n > 40:
             break
         time.sleep(0.05)
     hash_ok = typehash == STRING_HASH
-    ok = got_chatter >= 5 and got_big >= 1 and saw_node and served >= 1 and answers >= 1 and hash_ok
+    ok = got_chatter >= 5 and got_big >= 1 and saw_node and served >= 1 and answers >= 1 and \
+        hash_ok and action.ok()
     print("RESULT cyclone: chatter=%d holyc_big=%d saw_holyc_node=%s served=%d holyc_answers=%d "
-          "typehash=%s -> %s" % (got_chatter, got_big, saw_node, served, answers, hash_ok,
-                                 "OK" if ok else "FAIL"), flush=True)
+          "typehash=%s action=%s/%d feedback -> %s"
+          % (got_chatter, got_big, saw_node, served, answers, hash_ok, action.result,
+             action.feedback, "OK" if ok else "FAIL"), flush=True)
     return 0 if ok else 1
 
 

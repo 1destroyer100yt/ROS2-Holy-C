@@ -38,6 +38,48 @@ U0 InteropBig(CMsg_std_msgs_String *m,CInterop *x)
     x->big++;
 }
 
+class CInteropFib	//Fibonacci action server: one step per tick
+{
+  CRosGoal *g;
+  I64 i,n,done;
+};
+
+U0 InteropFibAccepted(CRosGoal *g,CInteropFib *f)
+{
+  CAct_example_interfaces_Fibonacci_Goal *goal=g->goal;
+  f->g=g;
+  f->n=goal->order;
+  f->i=0;
+  RosGoalExecute(g);
+}
+
+U0 InteropFibTick(CInteropFib *f)
+{
+  CAct_example_interfaces_Fibonacci_Feedback fb;
+  CRosField *sf=RosTypeField(ros_t_example_interfaces_Fibonacci_Feedback,"sequence");
+  I64 j,*v;
+  if (!f->g)
+    return;
+  MemSet(&fb,0,sizeof(fb));
+  RosSeqResize(sf,&fb,f->i+1);
+  v=fb.sequence.data;
+  for (j=0;j<=f->i;j++) {
+    if (j<2)
+      v[j]=j;
+    else
+      v[j]=v[j-1]+v[j-2];
+  }
+  if (f->i<f->n) {
+    RosGoalFeedback(f->g,&fb);
+    f->i++;
+  } else {
+    RosGoalSucceed(f->g,&fb);	//Result has the same layout
+    f->g=NULL;
+    f->done++;
+  }
+  RosMsgFini(ros_t_example_interfaces_Fibonacci_Feedback,&fb);
+}
+
 //peer_ip: where Cyclone is; mcast: use multicast discovery too.
 I64 DdsInteropBody(I64 peer_ip,Bool mcast)
 {
@@ -47,12 +89,15 @@ I64 DdsInteropBody(I64 peer_ip,Bool mcast)
   CRosPub *chat,*big;
   CRosQoS rel,tl;
   CInterop x;
+  CInteropFib fib;
+  CRosActionServer *as;
   CMsg_std_msgs_String m;
-  I64 end,next=0,count=0,big_sent=0;
+  I64 end,next=0,count=0,big_sent=0,all_done=0;
   CRtpsWriter *w;
   U8 *s;
   Bool node_ok,topic_ok,srvlist_ok,call_ok;
   MemSet(&x,0,sizeof(CInterop));
+  MemSet(&fib,0,sizeof(CInteropFib));
   pt=RosDdsStart(0,mcast);
   if (!pt) {
     Print("can't open RTPS ports\n");
@@ -71,6 +116,9 @@ I64 DdsInteropBody(I64 peer_ip,Bool mcast)
   RosSubNew(n,"from_cyclone",ros_t_std_msgs_String,&rel,&InteropFromCy,&x);
   RosSubNew(n,"big_string",ros_t_std_msgs_String,&tl,&InteropBig,&x);
   RosServiceNew(n,"holyc_add",ros_srv_example_interfaces_AddTwoInts,&InteropAdd,NULL);
+  as=RosActionServerNew(n,"holyc_fibonacci",ros_act_example_interfaces_Fibonacci,NULL,NULL,
+	&InteropFibAccepted,&fib);
+  RosTimerNew(n,20*ROS_NS_PER_MS,&InteropFibTick,&fib);
   end=RosTimeSteadyNs()+20*ROS_NS_PER_SEC;
   while (RosTimeSteadyNs()<end) {
     RosDdsSpin();
@@ -91,8 +139,13 @@ I64 DdsInteropBody(I64 peer_ip,Bool mcast)
         big_sent++;
       }
     }
-    if (x.echoes>=5 && x.from_cy>=5 && x.big>=1 && count>60)
-      break;
+    if (x.echoes>=5 && x.from_cy>=5 && x.big>=1 && fib.done && as->get_result->handled &&
+	count>60) {
+      if (!all_done)	//give the last replies time to be acknowledged
+        all_done=RosTimeSteadyNs();
+      else if (RosTimeSteadyNs()-all_done>500*ROS_NS_PER_MS)
+        break;
+    }
     Sleep(1);
   }
   //the CLI sees the other machine
@@ -111,8 +164,9 @@ I64 DdsInteropBody(I64 peer_ip,Bool mcast)
   call_ok=RosStrFind(s,"sum: 42")>=0;
   Free(s);
   ros_cli_assist=NULL;
-  Print("RESULT holyc: remote participants=%d echoes=%d from_cyclone=%d big_string=%d nodes=%d topics=%d services=%d call=%d\n",
-	pt->remote->len,x.echoes,x.from_cy,x.big,node_ok,topic_ok,srvlist_ok,call_ok);
+  Print("RESULT holyc: remote participants=%d echoes=%d from_cyclone=%d big_string=%d nodes=%d topics=%d services=%d call=%d goals=%d\n",
+	pt->remote->len,x.echoes,x.from_cy,x.big,node_ok,topic_ok,srvlist_ok,call_ok,fib.done);
+  RosActionServerDel(as);
   RosNodeDel(n);
   RosExecDel(e);
   RosDdsStop();

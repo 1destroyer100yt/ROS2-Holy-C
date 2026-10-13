@@ -4,6 +4,7 @@
 //  /<turtle>/pose (turtlesim/Pose)          out, 62.5 Hz
 //  /spawn /kill /clear /reset
 //  /<turtle>/set_pen /<turtle>/teleport_absolute /<turtle>/teleport_relative
+//  /<turtle>/rotate_absolute (turtlesim/action/RotateAbsolute)
 //
 //In TempleOS:  TurtleSim;   (arrow keys drive turtle1, Esc quits)
 
@@ -22,6 +23,9 @@ class CTurtle
   CRosSub *cmd;
   CRosPub *pose;
   CRosService *set_pen,*tele_abs,*tele_rel;
+  CRosActionServer *rotate;
+  CRosGoal *rot_goal;	//rotate_absolute goal being worked on
+  F64 rot_start;	//heading when it started
   U8 *sim;	//CTurtleSim *
 };
 
@@ -63,8 +67,22 @@ CTurtle *TurtleFind(CTurtleSim *ts,U8 *name)
   return NULL;
 }
 
+//End the rotate_absolute goal with its delta (start - now).
+U0 TurtleRotEnd(CTurtle *t,I64 status)
+{
+  CAct_turtlesim_RotateAbsolute_Result r;
+  r.delta=t->rot_start-t->theta;
+  RosGoalEnd(t->rot_goal,status,&r);
+  t->rot_goal=NULL;
+}
+
 U0 TurtleOnCmd(CMsg_geometry_msgs_Twist *m,CTurtle *t)
 {
+  CTurtleSim *ts=t->sim;
+  if (t->rot_goal) {
+    RosNodeLog(ts->node,ROS_LOG_WARN,"Velocity command received during rotation goal. Aborting goal");
+    TurtleRotEnd(t,ROS_GOAL_ABORTED);
+  }
   t->lin=m->linear.x;
   t->ang=m->angular.z;
   t->last_cmd_ns=RosTimeSteadyNs();
@@ -114,6 +132,49 @@ U0 TurtleTeleRel(CSrv_turtlesim_TeleportRelative_Request *req,U8 *resp,CTurtle *
   TurtleAddLine(t->sim,t,x0,y0);
 }
 
+U0 TurtleRotAccepted(CRosGoal *g,CTurtle *t)
+{
+  CTurtleSim *ts=t->sim;
+  if (t->rot_goal) {
+    RosNodeLog(ts->node,ROS_LOG_WARN,"Rotation goal received before a previous goal finished. Aborting previous goal");
+    TurtleRotEnd(t,ROS_GOAL_ABORTED);
+  }
+  t->rot_goal=g;
+  t->rot_start=t->theta;
+  RosGoalExecute(g);
+}
+
+//Turn toward the goal heading at 1 rad/s, like turtlesim.
+U0 TurtleRotStep(CTurtle *t,I64 now)
+{
+  CAct_turtlesim_RotateAbsolute_Goal *goal;
+  CAct_turtlesim_RotateAbsolute_Feedback fb;
+  F64 remaining;
+  if (!t->rot_goal)
+    return;
+  if (RosGoalIsCanceling(t->rot_goal)) {
+    TurtleRotEnd(t,ROS_GOAL_CANCELED);
+    t->lin=0.0;
+    t->ang=0.0;
+    return;
+  }
+  goal=t->rot_goal->goal;
+  remaining=TurtleNormAngle(TurtleNormAngle(goal->theta)-t->theta);
+  if (Abs(remaining)<0.02) {
+    TurtleRotEnd(t,ROS_GOAL_SUCCEEDED);
+    t->ang=0.0;
+    return;
+  }
+  fb.remaining=remaining;
+  RosGoalFeedback(t->rot_goal,&fb);
+  t->lin=0.0;
+  if (remaining<0.0)
+    t->ang=-1.0;
+  else
+    t->ang=1.0;
+  t->last_cmd_ns=now;
+}
+
 U8 *TurtleName(CTurtle *t,U8 *what)
 {
   return MStrPrint("%s/%s",t->name,what);
@@ -147,6 +208,10 @@ CTurtle *TurtleAdd(CTurtleSim *ts,U8 *name,F64 x,F64 y,F64 theta)
   s=TurtleName(t,"teleport_relative");
   t->tele_rel=RosServiceNew(ts->node,s,ros_srv_turtlesim_TeleportRelative,&TurtleTeleRel,t);
   Free(s);
+  s=TurtleName(t,"rotate_absolute");
+  t->rotate=RosActionServerNew(ts->node,s,ros_act_turtlesim_RotateAbsolute,NULL,NULL,
+	&TurtleRotAccepted,t);
+  Free(s);
   RosVecPushI64(ts->turtles,t);
   ts->spawned++;
   return t;
@@ -160,6 +225,7 @@ U0 TurtleRemove(CTurtleSim *ts,CTurtle *t)
   RosServiceDel(t->set_pen);
   RosServiceDel(t->tele_abs);
   RosServiceDel(t->tele_rel);
+  RosActionServerDel(t->rotate);
   Free(t->name);
   Free(t);
 }
@@ -222,6 +288,7 @@ U0 TurtleStep(CTurtleSim *ts,F64 dt)
   F64 x0,y0;
   for (i=0;i<ts->turtles->len;i++) {
     t=RosVecGetI64(ts->turtles,i);
+    TurtleRotStep(t,now);
     if (now-t->last_cmd_ns>TURTLE_CMD_TIMEOUT) {
       t->lin=0.0;
       t->ang=0.0;

@@ -193,33 +193,19 @@ I64 RosClientCall(CRosClient *c,U8 *req,U0 (*cb)(U8 *resp,I64 seq,U8 *user),U8 *
   return seq;
 }
 
-//Handle one waiting request. TRUE if there was one.
-Bool RosServiceExecOne(CRosService *s)
+//Send resp (taken over) to whoever asked r, and free r.
+U0 RosServiceDeliver(CRosService *s,CRosSrvReq *r,U8 *resp)
 {
-  CRosSrvReq *r=NULL;
   CRosClient *c;
   CRosPending *p;
-  U8 *resp;
   I64 i;
-  RosLockGet(&s->lock);
-  if (s->queue->len) {
-    r=RosVecGetI64(s->queue,0);
-    RosVecRemove(s->queue,0);
-  }
-  RosLockPut(&s->lock);
-  if (!r)
-    return FALSE;
-  resp=RosMsgNew(s->st->resp);
-  (*s->cb)(r->req,resp,s->user);
-  s->handled++;
-  RosMsgDel(s->st->req,r->req);
   if (r->remote) {	//asked over the network: answer there
     if (ros_hook_srv_reply)
       (*ros_hook_srv_reply)(s,r,resp);
     RosMsgDel(s->st->resp,resp);
     Free(r->remote);
     Free(r);
-    return TRUE;
+    return;
   }
   //hand the response to the client, if it's still there
   RosGraphLock();
@@ -241,6 +227,57 @@ Bool RosServiceExecOne(CRosService *s)
   if (resp)
     RosMsgDel(s->st->resp,resp);
   Free(r);
+}
+
+//Inside a service callback: don't answer now. Returns a ticket for
+//RosServiceReplyLater (the callback's resp is thrown away).
+U8 *RosServiceDefer(CRosService *s)
+{
+  s->deferred=TRUE;
+  return s->cur;
+}
+
+//Answer a deferred request with resp (copied).
+U0 RosServiceReplyLater(CRosService *s,U8 *ticket,U8 *resp)
+{
+  RosServiceDeliver(s,ticket,RosMsgDup(s->st->resp,resp));
+}
+
+//Drop a deferred request without answering (the service is going away).
+U0 RosServiceDropLater(CRosService *s,U8 *ticket)
+{
+  CRosSrvReq *r=ticket;
+  Free(r->remote);
+  Free(r);
+}
+
+//Handle one waiting request. TRUE if there was one.
+Bool RosServiceExecOne(CRosService *s)
+{
+  CRosSrvReq *r=NULL;
+  U8 *resp;
+  RosLockGet(&s->lock);
+  if (s->queue->len) {
+    r=RosVecGetI64(s->queue,0);
+    RosVecRemove(s->queue,0);
+  }
+  RosLockPut(&s->lock);
+  if (!r)
+    return FALSE;
+  resp=RosMsgNew(s->st->resp);
+  s->cur=r;
+  s->deferred=FALSE;
+  (*s->cb)(r->req,resp,s->user);
+  s->cur=NULL;
+  s->handled++;
+  RosMsgDel(s->st->req,r->req);
+  r->req=NULL;
+  if (s->deferred) {
+    s->deferred=FALSE;
+    RosMsgDel(s->st->resp,resp);
+    return TRUE;
+  }
+  RosServiceDeliver(s,r,resp);
   return TRUE;
 }
 

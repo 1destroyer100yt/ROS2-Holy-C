@@ -36,7 +36,7 @@ U8 *RosDdsTypeHash(U8 *dds_type)
     return NULL;
   n=StrLen(name);
   srv=NULL;
-  if (RosStrFind(name,"/srv/")>=0) {
+  if (RosStrFind(name,"/srv/")>=0 || RosStrFind(name,"/action/")>=0) {
     if (RosStrEndsWith(name,"_Request"))
       srv=RosStrSub(name,0,n-8);
     else if (RosStrEndsWith(name,"_Response"))

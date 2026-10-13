@@ -25,6 +25,8 @@ U8 *RosDdsTypeName(CRosType *t)
   U8 *kind="msg";
   if (RosStrFind(t->name,"/srv/")>=0)
     kind="srv";
+  else if (RosStrFind(t->name,"/action/")>=0)
+    kind="action";
   RosStrBufAdd(sb,t->pkg);
   RosStrBufAdd(sb,"::");
   RosStrBufAdd(sb,kind);

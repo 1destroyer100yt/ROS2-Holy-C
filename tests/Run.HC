@@ -20,6 +20,7 @@ Cd(__DIR__);;
 #include "TestBag.HC"
 #include "TestHashGolden.HC"
 #include "TestHash.HC"
+#include "TestAction.HC"
 
 I64 RosTestsRun()
 {
@@ -36,5 +37,6 @@ I64 RosTestsRun()
   TestTf();
   TestBag();
   TestHash();
+  TestAction();
   return RosTestSummary();
 }

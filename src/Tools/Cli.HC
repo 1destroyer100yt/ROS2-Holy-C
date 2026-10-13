@@ -254,6 +254,13 @@ U0 RosNodeInfo(U8 *fqn)
 
 //---- topics
 
+//Hidden, like rcl: a part of the name starts with _ (e.g. the
+//topics and services under an action's /_action/).
+Bool RosNameHidden(U8 *name)
+{
+  return name[0]=='_' || RosStrFind(name,"/_")>=0;
+}
+
 //Local names plus other machines' (sorted, unique).
 CRosVec *RosCliAllNames(CRosMap *local,Bool services)
 {
@@ -278,6 +285,8 @@ U8 *RosTopicListStr(Bool types)
   CRosType *t;
   I64 i;
   for (i=0;i<v->len;i++) {
+    if (RosNameHidden(RosVecGetI64(v,i)))
+      continue;
     RosStrBufAdd(sb,RosVecGetI64(v,i));
     if (types) {
       t=RosTopicTypeOf(RosVecGetI64(v,i));
@@ -578,6 +587,8 @@ U8 *RosServiceListStr(Bool types)
   U8 *rt;
   I64 i;
   for (i=0;i<v->len;i++) {
+    if (RosNameHidden(RosVecGetI64(v,i)))
+      continue;
     RosStrBufAdd(sb,RosVecGetI64(v,i));
     if (types) {
       RosGraphLock();
@@ -865,20 +876,26 @@ U0 RosParamDump(U8 *node_fqn)
 
 U8 *RosInterfaceListStr()
 {
-  CRosVec *msgs=RosVecNew(8),*srvs=RosVecNew(8);
+  CRosVec *msgs=RosVecNew(8),*srvs=RosVecNew(8),*acts=RosVecNew(8);
   CRosStrBuf *sb=RosStrBufNew();
   I64 i,it=0;
   U8 *k,*v;
   if (ros_types)
     while (RosMapNext(ros_types,&it,&k,&v))
-      if (RosStrFind(k,"/srv/")<0)
+      if (RosStrFind(k,"/srv/")<0 && RosStrFind(k,"/action/")<0)
         RosVecPushI64(msgs,StrNew(k));
   it=0;
   if (ros_srv_types)
     while (RosMapNext(ros_srv_types,&it,&k,&v))
-      RosVecPushI64(srvs,StrNew(k));
+      if (RosStrFind(k,"/action/")<0)
+        RosVecPushI64(srvs,StrNew(k));
+  it=0;
+  if (ros_action_types)
+    while (RosMapNext(ros_action_types,&it,&k,&v))
+      RosVecPushI64(acts,StrNew(k));
   RosStrVecSort(msgs);
   RosStrVecSort(srvs);
+  RosStrVecSort(acts);
   RosStrBufAdd(sb,"Messages:\n");
   for (i=0;i<msgs->len;i++) {
     RosStrBufAdd(sb,"    ");
@@ -891,8 +908,15 @@ U8 *RosInterfaceListStr()
     RosStrBufAdd(sb,RosVecGetI64(srvs,i));
     RosStrBufAddC(sb,'\n');
   }
+  RosStrBufAdd(sb,"Actions:\n");
+  for (i=0;i<acts->len;i++) {
+    RosStrBufAdd(sb,"    ");
+    RosStrBufAdd(sb,RosVecGetI64(acts,i));
+    RosStrBufAddC(sb,'\n');
+  }
   RosStrVecDel(msgs);
   RosStrVecDel(srvs);
+  RosStrVecDel(acts);
   return RosStrBufTake(sb);
 }
 
@@ -905,6 +929,9 @@ U8 *RosInterfaceShowStr(U8 *name)
 {
   CRosType *t=RosTypeFind(name);
   CRosSrvType *st=RosSrvFind(name);
+  CRosActionType *at=RosActionFind(name);
+  if (at)
+    return MStrPrint("%s---\n%s---\n%s",at->goal->def,at->result->def,at->feedback->def);
   if (st)
     return MStrPrint("%s---\n%s",st->req->def,st->resp->def);
   if (t)

@@ -3,6 +3,7 @@
 
 Cd(__DIR__);;
 #include "Cli.HC"
+#include "ActionCli.HC"
 #include "Launch.HC"
 #include "Turtlesim.HC"
 #include "Bag.HC"

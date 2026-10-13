@@ -141,6 +141,8 @@ class CRosService
   CRosVec *queue;	//CRosSrvReq *
   I64 lock,handled;
   U8 *dds;		//network side, if any
+  U8 *cur;		//CRosSrvReq * whose callback is running
+  Bool deferred;	//the running callback will answer later
 };
 
 class CRosClient
