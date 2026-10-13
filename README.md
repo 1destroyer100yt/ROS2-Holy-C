@@ -6,6 +6,7 @@ ROS 2, written from the ground up in pure HolyC for TempleOS.
 - The full roadmap: [PLAN.md](PLAN.md)
 - C++ plugin → HolyC converter: [tools/cpp2hc](tools/cpp2hc/README.md)
 - Messages (179 ROS 2 interfaces): [interfaces/](interfaces/README.md), demo in [examples/MsgDemo.HC](examples/MsgDemo.HC)
+- Nodes, topics, services, parameters: [docs/GRAPH.md](docs/GRAPH.md), examples in [examples/](examples/)
 
 ## Test it (no TempleOS needed)
 ```

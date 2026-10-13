@@ -147,6 +147,31 @@ def lint(lines):
     return errs
 
 
+def int64_literals(line):
+    """HolyC integer literals are 64-bit, C's are int: add LL so
+    10*1000000000 means the same thing on both."""
+    if line.lstrip().startswith("#"):
+        return line
+    out, i, n = [], 0, len(line)
+    start = 0
+    while i < n:
+        c = line[i]
+        if c in "\"'":
+            out.append(re.sub(r"(?<![\w.])(?<![eE][+-])(0[xX][0-9a-fA-F]+|\d+)(?![\w.])", r"\1LL", line[start:i]))
+            j = i + 1
+            while j < n and line[j] != c:
+                j += 2 if line[j] == "\\" else 1
+            out.append(line[i:j + 1])
+            i = start = j + 1
+            continue
+        if line.startswith("//", i):
+            break
+        i += 1
+    out.append(re.sub(r"(?<![\w.])(?<![eE][+-])(0[xX][0-9a-fA-F]+|\d+)(?![\w.])", r"\1LL", line[start:i]))
+    out.append(line[i:])
+    return "".join(out)
+
+
 def gather(path, seen=None):
     """Inline #includes. Returns list of (file, line_no, text, host_only)."""
     seen = seen if seen is not None else set()
@@ -185,6 +210,7 @@ def to_c(lines, main=None):
     for f, no, text, host in lines:
         if not host:
             text = text.replace("$$", "$")  # what the DolDoc file layer does in TempleOS
+            text = int64_literals(text)
         src.append('#line %d "%s"\n%s' % (no, f, text))
     text = "\n".join(src)
     # class/union Name { -> typedef + struct/union
@@ -193,7 +219,8 @@ def to_c(lines, main=None):
         if ":" in (m.group(3) or ""):
             raise SystemExit("hc2c: class inheritance (%s) not supported in core code" % m.group(2))
         return "typedef %s %s %s; %s %s%s" % (kind, m.group(2), m.group(2), kind, m.group(2), m.group(4))
-    text = re.sub(r"^(class|union)\s+(\w+)(\s*:\s*\w+)?(\s*\n?(?:#line[^\n]*\n)?\s*\{)", cls, text, flags=re.M)
+    text = re.sub(r"^(class|union)\s+(\w+)(\s*:\s*\w+)?([ \t]*(?://[^\n]*)?\n?(?:#line[^\n]*\n)?\s*\{)",
+                  cls, text, flags=re.M)
     text = re.sub(r"\boffset\(\s*(\w+)\s*\.\s*(\w+)\s*\)", r"__builtin_offsetof(\1,\2)", text)
     head = '#include "%s"\n' % os.path.join(HERE, "hcshim.h")
     tail = ""

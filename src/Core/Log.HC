@@ -35,22 +35,34 @@ U8 *RosLogLevelColor(I64 level)
   return "$$FG$$";
 }
 
-//Write an already formatted message. Returns TRUE if it passed the level filter.
-Bool RosLogWrite(I64 level,U8 *name,U8 *msg)
+I64 RosLogClamp(I64 level)
+{
+  if (level<ROS_LOG_DEBUG)
+    return ROS_LOG_DEBUG;
+  if (level>ROS_LOG_FATAL)
+    return ROS_LOG_FATAL;
+  return level;
+}
+
+//Print a log line without level filtering.
+U0 RosLogEmit(I64 level,U8 *name,U8 *msg)
 {
   I64 t;
-  if (level<ROS_LOG_DEBUG)
-    level=ROS_LOG_DEBUG;
-  if (level>ROS_LOG_FATAL)
-    level=ROS_LOG_FATAL;
-  if (level<ros_log_level)
-    return FALSE;
+  level=RosLogClamp(level);
   ros_log_counts[level]++;
   if (ros_log_quiet)
-    return TRUE;
+    return;
   t=RosClockNow(ROS_CLOCK_ROS);
   Print("%s[%s] [%d.%06d] [%s]: %s$$FG$$\n",RosLogLevelColor(level),RosLogLevelName(level),
 	RosTimeSec(t),RosTimeNsec(t)/1000,name,msg);
+}
+
+//Write an already formatted message. Returns TRUE if it passed the level filter.
+Bool RosLogWrite(I64 level,U8 *name,U8 *msg)
+{
+  if (RosLogClamp(level)<ros_log_level)
+    return FALSE;
+  RosLogEmit(level,name,msg);
   return TRUE;
 }
 

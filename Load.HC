@@ -1,7 +1,13 @@
-//Load ROS2-Holy-C: the library plus every message/service package.
+//Load ROS2-Holy-C: the library, every message/service package and the
+//ROS graph layer.
 //  #include "~/ROS2-Holy-C/Load.HC"
 
+#ifndef ROS2_HOLYC_LOADED
+#define ROS2_HOLYC_LOADED 1
 Cd(__DIR__);;
 #include "src/Load.HC"
 Cd(__DIR__);;
 #include "interfaces/Load.HC"
+Cd(__DIR__);;
+#include "src/Graph/Load.HC"
+#endif

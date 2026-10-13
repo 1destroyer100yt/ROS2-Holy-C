@@ -55,6 +55,9 @@ static F64 Sin(F64 d) { return sin(d); }
 static F64 Cos(F64 d) { return cos(d); }
 static F64 Arg(F64 x, F64 y) { return atan2(y, x); }
 static U0 Yield(void) {}
+/* TempleOS atomic bit ops: return the old bit */
+static Bool LBts(I64 *p, I64 bit) { return (__atomic_fetch_or(p, 1LL << bit, __ATOMIC_ACQUIRE) >> bit) & 1; }
+static Bool LBtr(I64 *p, I64 bit) { return (__atomic_fetch_and(p, ~(1LL << bit), __ATOMIC_RELEASE) >> bit) & 1; }
 static U0 Sleep(I64 ms)
 {
   struct timespec ts = {ms / 1000, (ms % 1000) * 1000000};
@@ -68,7 +71,7 @@ static I64 HostNowNs(void)
 }
 
 /* HolyC-style formatting: %d/%X/%c take I64, %f takes F64, %s takes U8*.
- * $...$ DolDoc commands are dropped, $$ becomes $. */
+ * (DolDoc $...$ commands are handled when printing, see HcPutDolDoc) */
 static U8 *HcVFormat(const U8 *fmt, va_list ap)
 {
   size_t cap = 256, len = 0;
@@ -77,10 +80,7 @@ static U8 *HcVFormat(const U8 *fmt, va_list ap)
   while (*f) {
     int n = 0;
     tmp[0] = 0;
-    if (*f == '$') {
-      if (f[1] == '$') { strcpy(tmp, "$"); f += 2; n = 1; }
-      else { const char *e = strchr(f + 1, '$'); f = e ? e + 1 : f + strlen(f); continue; }
-    } else if (*f == '%' && f[1] == '%') {
+    if (*f == '%' && f[1] == '%') {
       strcpy(tmp, "%"); f += 2; n = 1;
     } else if (*f == '%') {
       const char *s = f++;
@@ -125,11 +125,26 @@ static U8 *MStrPrint(const U8 *fmt, ...)
   va_end(ap);
   return s;
 }
+/* What the TempleOS document does with printed text: $$ is a $,
+ * other $...$ are DolDoc commands (colors etc.), dropped here. */
+static U0 HcPutDolDoc(const U8 *s)
+{
+  const char *p = (const char *)s;
+  while (*p) {
+    if (*p == '$') {
+      if (p[1] == '$') { fputc('$', stdout); p += 2; continue; }
+      const char *e = strchr(p + 1, '$');
+      p = e ? e + 1 : p + strlen(p);
+      continue;
+    }
+    fputc(*p++, stdout);
+  }
+}
 static U0 Print(const U8 *fmt, ...)
 {
   va_list ap; va_start(ap, fmt);
   U8 *s = HcVFormat(fmt, ap);
   va_end(ap);
-  fputs((char *)s, stdout);
+  HcPutDolDoc(s);
   free(s);
 }

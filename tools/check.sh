@@ -18,6 +18,13 @@ echo "== HolyC unit tests (host build)"
 python3 tools/hctest/hc2c.py run tests/Run.HC --main RosTestsRun --leaks
 echo "== examples run"
 python3 tools/hctest/hc2c.py run examples/MsgDemo.HC --main MsgDemo --leaks > /dev/null
+python3 tools/hctest/hc2c.py run examples/TalkerListener.HC --main TalkerListenerHost --leaks > /dev/null
+python3 tools/hctest/hc2c.py run examples/AddTwoInts.HC --main AddTwoIntsHost --leaks > /dev/null
+python3 tools/hctest/hc2c.py run examples/ParamDemo.HC --main ParamDemoHost --leaks > /dev/null
+echo "== threads (publishers + executor on different threads, ThreadSanitizer)"
+python3 tools/hctest/hc2c.py c Load.HC -o "$tmp/libg.c"
+gcc -O1 -g -fsanitize=thread -w -fwrapv -include "$tmp/libg.c" tools/hctest/threads_check.c -o "$tmp/thr" -lpthread -lm
+TSAN_OPTIONS=halt_on_error=1 "$tmp/thr"
 echo "== F32 vs C float"
 python3 tools/hctest/hc2c.py c src/Load.HC -o "$tmp/lib.c"
 gcc -O2 -fwrapv -w -include "$tmp/lib.c" tools/hctest/f32_check.c -o "$tmp/f32" -lm

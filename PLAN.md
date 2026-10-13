@@ -319,7 +319,20 @@ What we do instead is **better**, not just a workaround:
   - [ ] Actions (.action files), wstring
   - [ ] First compile on real TempleOS (watch: long string literals in TestGolden.HC,
         `offset()` in TestLayout.HC, `FileRead`/`FileWrite` in File.HC)
-- [ ] Phase 3 graph/executor
+- [x] Phase 3 graph/executor (`src/Graph/`)
+  - [x] Names (relative/absolute/~private, validation), node + global remapping
+  - [x] Nodes, publishers, subscriptions with zero-copy shared messages (refcounted), loaned messages
+  - [x] QoS: history/depth, reliability, durability (transient local late-joiners), lifespan,
+        compatibility rules + incompatible counters
+  - [x] Timers, executor (spin, spin_once, spin_some, spin_for, spin_until), one executor per task
+  - [x] Services + clients (async callbacks and blocking call), safe when a client disappears
+  - [x] Parameters stored as rcl_interfaces/ParameterValue: declare/get/set, types, read-only,
+        set-callback, YAML params files + `/**` wildcard, all 6 parameter services, /parameter_events
+  - [x] /rosout (rcl_interfaces/Log) per node
+  - [x] 110 graph tests; ThreadSanitizer stress test (3 publisher threads + executor thread)
+  - [x] Examples: TalkerListener (two TempleOS tasks), AddTwoInts, ParamDemo
+  - [ ] Multi-threaded executor (worker tasks on other cores)
+  - [ ] Creating/destroying entities from a task other than the one spinning that node is not safe yet
 - [ ] Phase 4 tools
 - [ ] Phase 5 plugins (finish + hot reload tested in VM)
 - [ ] Phase 6 serial bridge

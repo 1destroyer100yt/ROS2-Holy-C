@@ -27,9 +27,10 @@ real DDS/RTPS wire protocol too, so a TempleOS machine can talk to a normal ROS 
 | `tools/hctest/` | Builds and tests the HolyC on Linux, plus a HolyC linter |
 
 ## Status
-Early. Done so far: the plan, the core library, ROS 2 messages (179 interface types,
-byte-compatible with ROS 2's wire format), the plugin registry, and the C++→HolyC plugin
-converter. The rest is tracked in [`PLAN.md`](PLAN.md).
+Done so far: the plan, the core library, ROS 2 messages (179 interface types,
+byte-compatible with ROS 2's wire format), nodes/topics/services/parameters/executors
+inside TempleOS (talker and listener run as separate tasks), the plugin registry, and
+the C++→HolyC plugin converter. The rest is tracked in [`PLAN.md`](PLAN.md).
 
 ## Author
 Made by **Andrew Detroyer** ([@1destroyer100yt](https://github.com/1destroyer100yt)).
