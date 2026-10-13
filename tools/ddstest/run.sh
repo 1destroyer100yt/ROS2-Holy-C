@@ -12,7 +12,7 @@ if ! $PY -c "import cyclonedds" 2>/dev/null; then
   exit 0
 fi
 if [ "$1" = "tap" ]; then
-  if [ ! -w /dev/net/tun ]; then echo "ddstest tap: no /dev/net/tun access, skipping"; exit 0; fi
+  if [ ! -w /dev/net/tun ] || [ "$(id -u)" != 0 ]; then echo "ddstest tap: needs root and /dev/net/tun, skipping"; exit 0; fi
   out=$(mktemp)
   python3 tools/hctest/hc2c.py run tests/dds/Interop.HC --main DdsInteropTap > "$out" 2>&1 &
   holyc=$!

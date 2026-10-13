@@ -4,7 +4,7 @@
 #   tools/nettest/run.sh slip   over SLIP on a pty, Linux side a TUN device
 # Needs root (or CAP_NET_ADMIN); skipped otherwise.
 cd "$(dirname "$0")/../.."
-if [ ! -w /dev/net/tun ]; then echo "nettest: no /dev/net/tun access, skipping"; exit 0; fi
+if [ ! -w /dev/net/tun ] || [ "$(id -u)" != 0 ]; then echo "nettest: needs root and /dev/net/tun, skipping"; exit 0; fi
 out=$(mktemp)
 if [ "$1" = "slip" ]; then
   rel=$(mktemp)
