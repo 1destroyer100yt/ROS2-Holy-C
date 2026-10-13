@@ -499,3 +499,13 @@ U0 RosStrBufAddFixed(CRosStrBuf *sb,F64 x,I64 d)
       RosStrBufAddC(sb,'0');
   }
 }
+
+//Same text? NULL counts as "" (empty message strings are NULL).
+Bool RosStrSame(U8 *a,U8 *b)
+{
+  if (!a)
+    a="";
+  if (!b)
+    b="";
+  return !StrCmp(a,b);
+}

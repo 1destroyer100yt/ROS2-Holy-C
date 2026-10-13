@@ -5,11 +5,12 @@ ROS 2, written from the ground up in pure HolyC for TempleOS.
 - What this is and why: [ABOUT.md](ABOUT.md)
 - The full roadmap: [PLAN.md](PLAN.md)
 - C++ plugin → HolyC converter: [tools/cpp2hc](tools/cpp2hc/README.md)
-- Messages (179 ROS 2 interfaces): [interfaces/](interfaces/README.md), demo in [examples/MsgDemo.HC](examples/MsgDemo.HC)
+- Messages (182 ROS 2 interfaces: messages, services, actions): [interfaces/](interfaces/README.md), demo in [examples/MsgDemo.HC](examples/MsgDemo.HC)
 - Nodes, topics, services, parameters: [docs/GRAPH.md](docs/GRAPH.md), examples in [examples/](examples/)
-- The ros2 command line, launch, turtlesim: [docs/TOOLS.md](docs/TOOLS.md)
+- The ros2 command line, actions, launch, turtlesim, rosbag: [docs/TOOLS.md](docs/TOOLS.md)
 - Talking to real ROS 2 over the network (DDS/RTPS): [docs/NETWORK.md](docs/NETWORK.md)
 - Coordinate frames (tf2): [docs/TF.md](docs/TF.md)
+- RvizLite, a 2D rviz: [docs/RVIZ.md](docs/RVIZ.md)
 
 ## Test it (no TempleOS needed)
 ```

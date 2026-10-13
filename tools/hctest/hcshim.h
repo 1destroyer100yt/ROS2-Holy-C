@@ -69,6 +69,7 @@ static U64 RandU64(void)
 }
 static F64 ToF64(I64 i) { return (F64)i; }
 static F64 Abs(F64 d) { return fabs(d); }
+static I64 AbsI64(I64 i) { return i < 0 ? -i : i; }
 static F64 Sqrt(F64 d) { return sqrt(d); }
 static F64 Floor(F64 d) { return floor(d); }
 static F64 Ceil(F64 d) { return ceil(d); }

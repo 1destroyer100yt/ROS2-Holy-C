@@ -9,7 +9,7 @@ ROS 2 message and service definitions, plus the HolyC generated from them.
 | Generated HolyC per package | `<pkg>/Types.HC` (don't edit) |
 | Loads all packages | `Load.HC` (don't edit) |
 
-179 interfaces in 24 packages: `builtin_interfaces std_msgs geometry_msgs sensor_msgs nav_msgs
+182 interfaces (messages, services and 2 actions) in 24 packages: `builtin_interfaces std_msgs geometry_msgs sensor_msgs nav_msgs
 rcl_interfaces tf2_msgs rosgraph_msgs diagnostic_msgs trajectory_msgs visualization_msgs
 action_msgs actionlib_msgs lifecycle_msgs shape_msgs stereo_msgs statistics_msgs
 unique_identifier_msgs rmw_dds_common service_msgs type_description_interfaces std_srvs

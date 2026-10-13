@@ -70,7 +70,8 @@ src/
   Net/                  Eth.HC Arp.HC Ip.HC Udp.HC Igmp.HC
   Drv/                  E1000.HC RTL8139.HC PCNet.HC
   Plugin/               PluginLib.HC (pluginlib replacement)
-  Tools/                Cli.HC Launch.HC Rviz.HC
+  Tools/                Cli.HC Launch.HC Bag.HC
+  Viz/                  Canvas.HC Rviz.HC (RvizLite)
 interfaces/             std_msgs, geometry_msgs, sensor_msgs ... (.msg sources + generated .HC)
 examples/               Talker.HC Listener.HC AddTwoInts.HC Turtle.HC ...
 tests/                  HolyC unit tests, run inside the OS, results printed to COM1
@@ -307,7 +308,7 @@ What we do instead is **better**, not just a workaround:
   - [ ] First compile + `RosTestsRun;` on real TempleOS (check every `VERIFY` comment, e.g.
         `GetTSC`/`cnts.time_stamp_freq` in `Time.HC`, `StrPrintJoin` in `Log.HC`)
 - [x] Phase 2 messages
-  - [x] 179 interfaces / 24 packages (`interfaces/`), Jazzy definitions + hand-written services
+  - [x] 182 interfaces / 24 packages (`interfaces/`), Jazzy definitions + hand-written services
   - [x] `.msg`/`.srv` parser -> runtime type descriptions (`src/Msg/Type.HC`, `Parse.HC`)
   - [x] CDR (XCDR1) serializer/deserializer, LE + BE reading, bounds-checked (`Cdr.HC`)
   - [x] new/free/deep copy, set-by-path (`linear.x`, `poses[2].pose...`), YAML like `ros2 topic echo` (`Msg.HC`)
@@ -365,8 +366,12 @@ What we do instead is **better**, not just a workaround:
   - [x] Full stack over our IP stack + multicast against Cyclone DDS (TAP)
   - [x] SLIP serial link (tested over a pty against Linux) - this is also Phase 6, in pure HolyC
   - [~] e1000 driver written (VERIFY on QEMU), `RosNetwork(...)` / `RosNetworkSlip(...)` one-liners
-- [~] Phase 8 tf/rviz-lite/rosbag-lite
+- [x] Phase 8 tf/rviz-lite/rosbag
   - [x] tf2: transforms, buffer with interpolation, lookups across the tree, /tf + /tf_static,
         tf2_echo (`src/Tf/`, docs/TF.md)
   - [x] rosbag2 MCAP record/play/info, read + written against rosbags and mcap
         (`src/Tools/Bag.HC`, tools/bagtest); compressed chunks not supported
+  - [x] RvizLite: map, scan, path, poses, odometry, markers, tf, grid, pan/zoom, rendered into a
+        16-color canvas that's tested pixel by pixel on Linux (`src/Viz/`, docs/RVIZ.md);
+        VERIFY the window on real TempleOS
+  - [ ] Hardware drivers (serial motor controllers, joysticks)
