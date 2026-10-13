@@ -98,6 +98,60 @@ CRosType *ros_t_turtlesim_TeleportRelative_Response=NULL;
 
 CRosSrvType *ros_srv_turtlesim_TeleportRelative=NULL;
 
+class CAct_turtlesim_RotateAbsolute_Goal
+{
+  F64 theta;	//float32
+};
+CRosType *ros_t_turtlesim_RotateAbsolute_Goal=NULL;
+
+class CAct_turtlesim_RotateAbsolute_Result
+{
+  F64 delta;	//float32
+};
+CRosType *ros_t_turtlesim_RotateAbsolute_Result=NULL;
+
+class CAct_turtlesim_RotateAbsolute_Feedback
+{
+  F64 remaining;	//float32
+};
+CRosType *ros_t_turtlesim_RotateAbsolute_Feedback=NULL;
+
+class CAct_turtlesim_RotateAbsolute_SendGoal_Request
+{
+  CMsg_unique_identifier_msgs_UUID goal_id;	//unique_identifier_msgs/msg/UUID
+  CAct_turtlesim_RotateAbsolute_Goal goal;	//turtlesim/action/RotateAbsolute_Goal
+};
+CRosType *ros_t_turtlesim_RotateAbsolute_SendGoal_Request=NULL;
+
+class CAct_turtlesim_RotateAbsolute_SendGoal_Response
+{
+  I64 accepted;	//bool
+  CMsg_builtin_interfaces_Time stamp;	//builtin_interfaces/msg/Time
+};
+CRosType *ros_t_turtlesim_RotateAbsolute_SendGoal_Response=NULL;
+
+class CAct_turtlesim_RotateAbsolute_GetResult_Request
+{
+  CMsg_unique_identifier_msgs_UUID goal_id;	//unique_identifier_msgs/msg/UUID
+};
+CRosType *ros_t_turtlesim_RotateAbsolute_GetResult_Request=NULL;
+
+class CAct_turtlesim_RotateAbsolute_GetResult_Response
+{
+  I64 status;	//int8
+  CAct_turtlesim_RotateAbsolute_Result result;	//turtlesim/action/RotateAbsolute_Result
+};
+CRosType *ros_t_turtlesim_RotateAbsolute_GetResult_Response=NULL;
+
+class CAct_turtlesim_RotateAbsolute_FeedbackMessage
+{
+  CMsg_unique_identifier_msgs_UUID goal_id;	//unique_identifier_msgs/msg/UUID
+  CAct_turtlesim_RotateAbsolute_Feedback feedback;	//turtlesim/action/RotateAbsolute_Feedback
+};
+CRosType *ros_t_turtlesim_RotateAbsolute_FeedbackMessage=NULL;
+
+CRosActionType *ros_act_turtlesim_RotateAbsolute=NULL;
+
 U0 RosIfaceLoad_turtlesim()
 {
   ros_t_turtlesim_Color=RosMsgDefine("turtlesim/msg/Color","uint8 r\nuint8 g\nuint8 b\n");
@@ -117,4 +171,13 @@ U0 RosIfaceLoad_turtlesim()
   ros_srv_turtlesim_TeleportRelative=RosSrvDefine("turtlesim/srv/TeleportRelative","float32 linear\nfloat32 angular\n---\n");
   ros_t_turtlesim_TeleportRelative_Request=ros_srv_turtlesim_TeleportRelative->req;
   ros_t_turtlesim_TeleportRelative_Response=ros_srv_turtlesim_TeleportRelative->resp;
+  ros_act_turtlesim_RotateAbsolute=RosActionDefine("turtlesim/action/RotateAbsolute","# The desired heading in radians\nfloat32 theta\n---\n# The angular displacement in radians to the starting position\nfloat32 delta\n---\n# The remaining rotation in radians\nfloat32 remaining\n");
+  ros_t_turtlesim_RotateAbsolute_Goal=RosTypeFind("turtlesim/action/RotateAbsolute_Goal");
+  ros_t_turtlesim_RotateAbsolute_Result=RosTypeFind("turtlesim/action/RotateAbsolute_Result");
+  ros_t_turtlesim_RotateAbsolute_Feedback=RosTypeFind("turtlesim/action/RotateAbsolute_Feedback");
+  ros_t_turtlesim_RotateAbsolute_SendGoal_Request=RosTypeFind("turtlesim/action/RotateAbsolute_SendGoal_Request");
+  ros_t_turtlesim_RotateAbsolute_SendGoal_Response=RosTypeFind("turtlesim/action/RotateAbsolute_SendGoal_Response");
+  ros_t_turtlesim_RotateAbsolute_GetResult_Request=RosTypeFind("turtlesim/action/RotateAbsolute_GetResult_Request");
+  ros_t_turtlesim_RotateAbsolute_GetResult_Response=RosTypeFind("turtlesim/action/RotateAbsolute_GetResult_Response");
+  ros_t_turtlesim_RotateAbsolute_FeedbackMessage=RosTypeFind("turtlesim/action/RotateAbsolute_FeedbackMessage");
 }

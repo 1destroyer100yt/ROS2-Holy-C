@@ -15,9 +15,72 @@ CRosType *ros_t_example_interfaces_AddTwoInts_Response=NULL;
 
 CRosSrvType *ros_srv_example_interfaces_AddTwoInts=NULL;
 
+class CAct_example_interfaces_Fibonacci_Goal
+{
+  I64 order;	//int32
+};
+CRosType *ros_t_example_interfaces_Fibonacci_Goal=NULL;
+
+class CAct_example_interfaces_Fibonacci_Result
+{
+  CRosSeq sequence;	//int32 sequence
+};
+CRosType *ros_t_example_interfaces_Fibonacci_Result=NULL;
+
+class CAct_example_interfaces_Fibonacci_Feedback
+{
+  CRosSeq sequence;	//int32 sequence
+};
+CRosType *ros_t_example_interfaces_Fibonacci_Feedback=NULL;
+
+class CAct_example_interfaces_Fibonacci_SendGoal_Request
+{
+  CMsg_unique_identifier_msgs_UUID goal_id;	//unique_identifier_msgs/msg/UUID
+  CAct_example_interfaces_Fibonacci_Goal goal;	//example_interfaces/action/Fibonacci_Goal
+};
+CRosType *ros_t_example_interfaces_Fibonacci_SendGoal_Request=NULL;
+
+class CAct_example_interfaces_Fibonacci_SendGoal_Response
+{
+  I64 accepted;	//bool
+  CMsg_builtin_interfaces_Time stamp;	//builtin_interfaces/msg/Time
+};
+CRosType *ros_t_example_interfaces_Fibonacci_SendGoal_Response=NULL;
+
+class CAct_example_interfaces_Fibonacci_GetResult_Request
+{
+  CMsg_unique_identifier_msgs_UUID goal_id;	//unique_identifier_msgs/msg/UUID
+};
+CRosType *ros_t_example_interfaces_Fibonacci_GetResult_Request=NULL;
+
+class CAct_example_interfaces_Fibonacci_GetResult_Response
+{
+  I64 status;	//int8
+  CAct_example_interfaces_Fibonacci_Result result;	//example_interfaces/action/Fibonacci_Result
+};
+CRosType *ros_t_example_interfaces_Fibonacci_GetResult_Response=NULL;
+
+class CAct_example_interfaces_Fibonacci_FeedbackMessage
+{
+  CMsg_unique_identifier_msgs_UUID goal_id;	//unique_identifier_msgs/msg/UUID
+  CAct_example_interfaces_Fibonacci_Feedback feedback;	//example_interfaces/action/Fibonacci_Feedback
+};
+CRosType *ros_t_example_interfaces_Fibonacci_FeedbackMessage=NULL;
+
+CRosActionType *ros_act_example_interfaces_Fibonacci=NULL;
+
 U0 RosIfaceLoad_example_interfaces()
 {
   ros_srv_example_interfaces_AddTwoInts=RosSrvDefine("example_interfaces/srv/AddTwoInts","int64 a\nint64 b\n---\nint64 sum\n");
   ros_t_example_interfaces_AddTwoInts_Request=ros_srv_example_interfaces_AddTwoInts->req;
   ros_t_example_interfaces_AddTwoInts_Response=ros_srv_example_interfaces_AddTwoInts->resp;
+  ros_act_example_interfaces_Fibonacci=RosActionDefine("example_interfaces/action/Fibonacci","# Goal\nint32 order\n---\n# Result\nint32[] sequence\n---\n# Feedback\nint32[] sequence\n");
+  ros_t_example_interfaces_Fibonacci_Goal=RosTypeFind("example_interfaces/action/Fibonacci_Goal");
+  ros_t_example_interfaces_Fibonacci_Result=RosTypeFind("example_interfaces/action/Fibonacci_Result");
+  ros_t_example_interfaces_Fibonacci_Feedback=RosTypeFind("example_interfaces/action/Fibonacci_Feedback");
+  ros_t_example_interfaces_Fibonacci_SendGoal_Request=RosTypeFind("example_interfaces/action/Fibonacci_SendGoal_Request");
+  ros_t_example_interfaces_Fibonacci_SendGoal_Response=RosTypeFind("example_interfaces/action/Fibonacci_SendGoal_Response");
+  ros_t_example_interfaces_Fibonacci_GetResult_Request=RosTypeFind("example_interfaces/action/Fibonacci_GetResult_Request");
+  ros_t_example_interfaces_Fibonacci_GetResult_Response=RosTypeFind("example_interfaces/action/Fibonacci_GetResult_Response");
+  ros_t_example_interfaces_Fibonacci_FeedbackMessage=RosTypeFind("example_interfaces/action/Fibonacci_FeedbackMessage");
 }

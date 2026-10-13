@@ -81,8 +81,17 @@ class CRosSrvType
   CRosType *req,*resp;
 };
 
+class CRosActionType
+{
+  U8 *name;		//"example_interfaces/action/Fibonacci"
+  CRosType *goal,*result,*feedback;	//pkg/action/Name_Goal etc.
+  CRosSrvType *send_goal,*get_result;	//pkg/action/Name_SendGoal, _GetResult
+  CRosType *feedback_msg;	//pkg/action/Name_FeedbackMessage
+};
+
 CRosMap *ros_types=NULL;	//name -> CRosType *
 CRosMap *ros_srv_types=NULL;	//name -> CRosSrvType *
+CRosMap *ros_action_types=NULL;	//name -> CRosActionType *
 U8 ros_msg_error[256];		//last error from parse/CDR/set
 
 U0 RosMsgErr(U8 *what,U8 *detail)

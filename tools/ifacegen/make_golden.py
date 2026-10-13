@@ -47,6 +47,20 @@ def load_typestore():
     out = []
     for name in names:
         pkg, kind, base = name.split("/")
+        if kind == "action":
+            with open(os.path.join(IFACE, pkg, "action", base + ".action")) as fh:
+                goal, result, feedback = strip_comments(fh.read()).split("\n---\n")
+            pre = "%s/action/%s" % (pkg, base)
+            parts = [("_Goal", goal), ("_Result", result), ("_Feedback", feedback),
+                     ("_SendGoal_Request", "unique_identifier_msgs/UUID goal_id\n%s_Goal goal\n" % pre),
+                     ("_SendGoal_Response", "bool accepted\nbuiltin_interfaces/Time stamp\n"),
+                     ("_GetResult_Request", "unique_identifier_msgs/UUID goal_id\n"),
+                     ("_GetResult_Response", "int8 status\n%s_Result result\n" % pre),
+                     ("_FeedbackMessage", "unique_identifier_msgs/UUID goal_id\n%s_Feedback feedback\n" % pre)]
+            for suffix, text in parts:
+                ts.register(get_types_from_msg(text, pre + suffix))
+                out.append((pre + suffix, pre + suffix))
+            continue
         if kind == "msg":
             if name not in ts.fielddefs:
                 with open(os.path.join(IFACE, pkg, "msg", base + ".msg")) as fh:

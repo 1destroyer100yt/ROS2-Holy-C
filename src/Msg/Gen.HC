@@ -14,11 +14,14 @@ U0 RosGenIdent(CRosStrBuf *sb,CRosType *t)
   RosStrBufAdd(sb,t->base);
 }
 
-//Class name: CMsg_pkg_Name, or CSrv_pkg_Name_Request for services.
+//Class name: CMsg_pkg_Name, CSrv_pkg_Name_Request for services,
+//CAct_pkg_Name_Goal (and _SendGoal_Request...) for actions.
 U0 RosGenClassName(CRosStrBuf *sb,CRosType *t)
 {
   if (RosStrFind(t->name,"/srv/")>=0)
     RosStrBufAdd(sb,"CSrv_");
+  else if (RosStrFind(t->name,"/action/")>=0)
+    RosStrBufAdd(sb,"CAct_");
   else
     RosStrBufAdd(sb,"CMsg_");
   RosGenIdent(sb,t);
@@ -206,6 +209,30 @@ U8 *RosGenPath(U8 *root,U8 *a,U8 *b,U8 *c)
   return RosStrBufTake(sb);
 }
 
+//The 7 message types of an action, in the order they're generated.
+CRosVec *RosGenActTypes(CRosActionType *at)
+{
+  CRosVec *v=RosVecNew(8);
+  RosVecPushI64(v,at->goal);
+  RosVecPushI64(v,at->result);
+  RosVecPushI64(v,at->feedback);
+  RosVecPushI64(v,at->send_goal->req);
+  RosVecPushI64(v,at->send_goal->resp);
+  RosVecPushI64(v,at->get_result->req);
+  RosVecPushI64(v,at->get_result->resp);
+  RosVecPushI64(v,at->feedback_msg);
+  return v;
+}
+
+//"ros_act_pkg_Name" for an action.
+U0 RosGenActVar(CRosStrBuf *sb,CRosActionType *at)
+{
+  RosStrBufAdd(sb,"ros_act_");
+  RosStrBufAdd(sb,at->goal->pkg);
+  RosStrBufAddC(sb,'_');
+  RosStrBufAdd(sb,at->name+StrLen(at->goal->pkg)+8);	//skip "pkg/action/"
+}
+
 Bool RosGenWrite(U8 *path,CRosStrBuf *sb)
 {
   if (!RosFileWrite(path,sb->buf,sb->len)) {
@@ -224,7 +251,9 @@ Bool RosIfaceGen(U8 *root)
   CRosStrBuf *sb,*chk,*ld;
   CRosType *t;
   CRosSrvType *st;
-  I64 i,j,progress,ntypes=0;
+  CRosActionType *at;
+  CRosVec *acts;
+  I64 i,j,k,progress,ntypes=0;
   Bool ready,ok=TRUE;
 
   path=RosGenPath(root,"interfaces/Index.txt",NULL,NULL);
@@ -254,6 +283,8 @@ Bool RosIfaceGen(U8 *root)
       rel=RosGenPath(RosVecGetI64(parts,0),kind,nm,NULL);
       if (!StrCmp(kind,"msg"))
         path=RosGenPath(root,"interfaces",rel,".msg");
+      else if (!StrCmp(kind,"action"))
+        path=RosGenPath(root,"interfaces",rel,".action");
       else
         path=RosGenPath(root,"interfaces",rel,".srv");
       text=RosFileRead(path,NULL);
@@ -266,6 +297,16 @@ Bool RosIfaceGen(U8 *root)
           t=RosMsgDefine(item,text);
           if (t)
             RosGenAddDeps(p,t);
+        } else if (!StrCmp(kind,"action")) {
+          at=RosActionDefine(item,text);
+          t=NULL;
+          if (at) {
+            t=at->goal;
+            acts=RosGenActTypes(at);
+            for (k=0;k<acts->len;k++)
+              RosGenAddDeps(p,RosVecGetI64(acts,k));
+            RosVecDel(acts);
+          }
         } else {
           st=RosSrvDefine(item,text);
           t=NULL;
@@ -344,7 +385,18 @@ Bool RosIfaceGen(U8 *root)
     RosStrBufAdd(sb,". Don't edit.\n\n");
     for (j=0;j<p->items->len;j++) {
       item=RosVecGetI64(p->items,j);
-      if (RosStrFind(item,"/srv/")>=0) {
+      if (RosStrFind(item,"/action/")>=0) {
+        at=RosActionFind(item);
+        acts=RosGenActTypes(at);
+        for (k=0;k<acts->len;k++) {
+          RosGenClass(sb,RosVecGetI64(acts,k));
+          RosGenCheck(chk,RosVecGetI64(acts,k));
+        }
+        RosVecDel(acts);
+        RosStrBufAdd(sb,"CRosActionType *");
+        RosGenActVar(sb,at);
+        RosStrBufAdd(sb,"=NULL;\n\n");
+      } else if (RosStrFind(item,"/srv/")>=0) {
         st=RosSrvFind(item);
         RosGenClass(sb,st->req);
         RosGenClass(sb,st->resp);
@@ -366,7 +418,30 @@ Bool RosIfaceGen(U8 *root)
     RosStrBufAdd(sb,"()\n{\n");
     for (j=0;j<p->items->len;j++) {
       item=RosVecGetI64(p->items,j);
-      if (RosStrFind(item,"/srv/")>=0) {
+      if (RosStrFind(item,"/action/")>=0) {
+        at=RosActionFind(item);
+        RosStrBufAdd(sb,"  ");
+        RosGenActVar(sb,at);
+        RosStrBufAdd(sb,"=RosActionDefine(\"");
+        RosStrBufAdd(sb,item);
+        RosStrBufAdd(sb,"\",\"");
+        rel=RosGenPath(root,"interfaces",item,".action");
+        text=RosFileRead(rel,NULL);
+        RosGenStrLit(sb,text);
+        Free(text);
+        Free(rel);
+        RosStrBufAdd(sb,"\");\n");
+        acts=RosGenActTypes(at);
+        for (k=0;k<acts->len;k++) {
+          t=RosVecGetI64(acts,k);
+          RosStrBufAdd(sb,"  ros_t_");
+          RosGenIdent(sb,t);
+          RosStrBufAdd(sb,"=RosTypeFind(\"");
+          RosStrBufAdd(sb,t->name);
+          RosStrBufAdd(sb,"\");\n");
+        }
+        RosVecDel(acts);
+      } else if (RosStrFind(item,"/srv/")>=0) {
         st=RosSrvFind(item);
         RosStrBufAdd(sb,"  ros_srv_");
         RosGenIdent(sb,st->req);

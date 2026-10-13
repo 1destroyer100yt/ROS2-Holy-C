@@ -30,6 +30,22 @@ U0 TestHashGolden()
 	"RIHS01_b0e3e692ea2d54a8af2f4ef1930e81556a2db55216b771f8a7d2724ed47bf0e4");
   RosTestStr("diagnostic_msgs/msg/DiagnosticArray",RosTypeHash(RosTypeFind("diagnostic_msgs/msg/DiagnosticArray")),
 	"RIHS01_5a8a36efb05fb25070fa0fb3810290c0e6cd4862b54a8fb975a1ee8dc55a333e");
+  RosTestStr("example_interfaces/action/Fibonacci_Goal",RosTypeHash(RosTypeFind("example_interfaces/action/Fibonacci_Goal")),
+	"RIHS01_226cb437e4355dcd3e914f930382a3b0cc1da81545bd319ed554e95a03255f51");
+  RosTestStr("example_interfaces/action/Fibonacci_Result",RosTypeHash(RosTypeFind("example_interfaces/action/Fibonacci_Result")),
+	"RIHS01_fea81394f25aa4502217953f1a021fb750e79c10bbd43f13dd94632da6569649");
+  RosTestStr("example_interfaces/action/Fibonacci_Feedback",RosTypeHash(RosTypeFind("example_interfaces/action/Fibonacci_Feedback")),
+	"RIHS01_2b12e37361da6f408d4c85bc24a18de64333f29082f2ca34b5ee33dc4c8b42a9");
+  RosTestStr("example_interfaces/action/Fibonacci_SendGoal_Request",RosTypeHash(RosTypeFind("example_interfaces/action/Fibonacci_SendGoal_Request")),
+	"RIHS01_3d088942b413247db536576f0286768c6be8fcd5d0c9a5d544f359fba090a238");
+  RosTestStr("example_interfaces/action/Fibonacci_SendGoal_Response",RosTypeHash(RosTypeFind("example_interfaces/action/Fibonacci_SendGoal_Response")),
+	"RIHS01_d8c07bb3d5b766fe4b43159c9a5222af5214e2fcc29229b991d826166c512be1");
+  RosTestStr("example_interfaces/action/Fibonacci_GetResult_Request",RosTypeHash(RosTypeFind("example_interfaces/action/Fibonacci_GetResult_Request")),
+	"RIHS01_c8a4f5e7d13b81286ee1043e2ecd084281cecf1ff06aaa799464f5f15479f003");
+  RosTestStr("example_interfaces/action/Fibonacci_GetResult_Response",RosTypeHash(RosTypeFind("example_interfaces/action/Fibonacci_GetResult_Response")),
+	"RIHS01_6021dc98ab9b4bbe395e48aa4de81ee5f68eb570f88358affcc648146668b24f");
+  RosTestStr("example_interfaces/action/Fibonacci_FeedbackMessage",RosTypeHash(RosTypeFind("example_interfaces/action/Fibonacci_FeedbackMessage")),
+	"RIHS01_c1de71afd52e49a89c53d8262366884185bc0a02f78ce051c4e46b0a7fe59bb2");
   RosTestStr("geometry_msgs/msg/Vector3",RosTypeHash(RosTypeFind("geometry_msgs/msg/Vector3")),
 	"RIHS01_cc12fe83e4c02719f1ce8070bfd14aecd40f75a96696a67a2a1f37f7dbb0765d");
   RosTestStr("geometry_msgs/msg/Accel",RosTypeHash(RosTypeFind("geometry_msgs/msg/Accel")),
@@ -292,6 +308,22 @@ U0 TestHashGolden()
 	"RIHS01_74492579ec0d734707aede0e742ab76c55ac50d3ff917381e5163624cb657fe5");
   RosTestStr("turtlesim/msg/Pose",RosTypeHash(RosTypeFind("turtlesim/msg/Pose")),
 	"RIHS01_739beba26bcba6920404ba722b7b8321348512f92ea5be235c47251940dd8aa9");
+  RosTestStr("turtlesim/action/RotateAbsolute_Goal",RosTypeHash(RosTypeFind("turtlesim/action/RotateAbsolute_Goal")),
+	"RIHS01_87a85708e2e85bdd56e4c71f41ff36f4d60ad2318c4faff1f85f417d2040a600");
+  RosTestStr("turtlesim/action/RotateAbsolute_Result",RosTypeHash(RosTypeFind("turtlesim/action/RotateAbsolute_Result")),
+	"RIHS01_ebf1053164cbc1314956ebea419d429ba9d3236219308838a2c71b1610baf143");
+  RosTestStr("turtlesim/action/RotateAbsolute_Feedback",RosTypeHash(RosTypeFind("turtlesim/action/RotateAbsolute_Feedback")),
+	"RIHS01_d422136ea4ba9ffe2af6b2e555da09acf7f318ad1e5df0169100e24ff4e235b7");
+  RosTestStr("turtlesim/action/RotateAbsolute_SendGoal_Request",RosTypeHash(RosTypeFind("turtlesim/action/RotateAbsolute_SendGoal_Request")),
+	"RIHS01_af76c8315e4339d5008eaa78fd8a13f3c3c7807655c94c4649757629f7d345e8");
+  RosTestStr("turtlesim/action/RotateAbsolute_SendGoal_Response",RosTypeHash(RosTypeFind("turtlesim/action/RotateAbsolute_SendGoal_Response")),
+	"RIHS01_ec4bbddf7edb0bb396496c99f8de2dd22b683d1ea05d13ea667f3d12207d87f3");
+  RosTestStr("turtlesim/action/RotateAbsolute_GetResult_Request",RosTypeHash(RosTypeFind("turtlesim/action/RotateAbsolute_GetResult_Request")),
+	"RIHS01_66565fd4f8b59c7d98828d46b8c6ddb883974b946f75e05aa2b078078ca7bb4f");
+  RosTestStr("turtlesim/action/RotateAbsolute_GetResult_Response",RosTypeHash(RosTypeFind("turtlesim/action/RotateAbsolute_GetResult_Response")),
+	"RIHS01_e896981c8e809b26b00ce5fe1440f665d57ffcb02d6b882829b45445917e056b");
+  RosTestStr("turtlesim/action/RotateAbsolute_FeedbackMessage",RosTypeHash(RosTypeFind("turtlesim/action/RotateAbsolute_FeedbackMessage")),
+	"RIHS01_301a2a4ed96af28a40155e14dadf0c48eee5decaecd755be05ccda8144ca40b3");
   RosTestStr("type_description_interfaces/msg/FieldType",RosTypeHash(RosTypeFind("type_description_interfaces/msg/FieldType")),
 	"RIHS01_a70b6dd919645a03a3586f7f821defbc886ea3e531a1d95cc0f380a3973ccaa6");
   RosTestStr("type_description_interfaces/msg/Field",RosTypeHash(RosTypeFind("type_description_interfaces/msg/Field")),

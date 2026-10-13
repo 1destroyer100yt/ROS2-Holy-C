@@ -3,6 +3,7 @@ unique_identifier_msgs/msg/UUID
 action_msgs/msg/GoalInfo
 action_msgs/msg/GoalStatus
 action_msgs/msg/GoalStatusArray
+action_msgs/srv/CancelGoal
 actionlib_msgs/msg/GoalID
 actionlib_msgs/msg/GoalStatus
 std_msgs/msg/Header
@@ -12,6 +13,7 @@ diagnostic_msgs/msg/KeyValue
 diagnostic_msgs/msg/DiagnosticStatus
 diagnostic_msgs/msg/DiagnosticArray
 example_interfaces/srv/AddTwoInts
+example_interfaces/action/Fibonacci
 geometry_msgs/msg/Vector3
 geometry_msgs/msg/Accel
 geometry_msgs/msg/AccelStamped
@@ -159,6 +161,7 @@ turtlesim/srv/SetPen
 turtlesim/srv/Spawn
 turtlesim/srv/TeleportAbsolute
 turtlesim/srv/TeleportRelative
+turtlesim/action/RotateAbsolute
 type_description_interfaces/msg/FieldType
 type_description_interfaces/msg/Field
 type_description_interfaces/msg/IndividualTypeDescription

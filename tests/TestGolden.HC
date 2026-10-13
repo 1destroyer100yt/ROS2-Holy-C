@@ -15,6 +15,10 @@ U0 TestGolden()
 	"goal_info:\n  goal_id:\n    uuid:\n    - 182\n    - 0\n    - 1\n    - 1\n    - 255\n    - 255\n    - 1\n    - 1\n    - 1\n    - 0\n    - 255\n    - 110\n    - 0\n    - 255\n    - 1\n    - 1\n  stamp:\n    sec: 193557579\n    nanosec: 1\nstatus: 1\n");
   RosTestGolden("action_msgs/msg/GoalStatusArray","00010000020000000000ff010000ffff00ff00ff0019ff0000000000ff182b1700000a000100000001ff8400ff00000001000000000000000000000000",
 	"status_list:\n- goal_info:\n    goal_id:\n      uuid:\n      - 0\n      - 0\n      - 255\n      - 1\n      - 0\n      - 0\n      - 255\n      - 255\n      - 0\n      - 255\n      - 0\n      - 255\n      - 0\n      - 25\n      - 255\n      - 0\n    stamp:\n      sec: 0\n      nanosec: 388700415\n  status: 0\n- goal_info:\n    goal_id:\n      uuid:\n      - 0\n      - 10\n      - 0\n      - 1\n      - 0\n      - 0\n      - 0\n      - 1\n      - 255\n      - 132\n      - 0\n      - 255\n      - 0\n      - 0\n      - 0\n      - 1\n    stamp:\n      sec: 0\n      nanosec: 0\n  status: 0\n");
+  RosTestGolden("action_msgs/srv/CancelGoal_Request","0001000001ff00ff002c01ff00ff0101ff010000ffffff7fffffffff",
+	"goal_info:\n  goal_id:\n    uuid:\n    - 1\n    - 255\n    - 0\n    - 255\n    - 0\n    - 44\n    - 1\n    - 255\n    - 0\n    - 255\n    - 1\n    - 1\n    - 255\n    - 1\n    - 0\n    - 0\n  stamp:\n    sec: 2147483647\n    nanosec: 4294967295\n");
+  RosTestGolden("action_msgs/srv/CancelGoal_Response","000100000000000000000000",
+	"return_code: 0\ngoals_canceling: []\n");
   RosTestGolden("actionlib_msgs/msg/GoalID","0001000000000000ffffffff040000006d617000",
 	"stamp:\n  sec: 0\n  nanosec: 4294967295\nid: 'map'\n");
   RosTestGolden("actionlib_msgs/msg/GoalStatus","0001000000000000ffffffff0100000000010000050000006974277300",
@@ -35,6 +39,22 @@ U0 TestGolden()
 	"a: 6181351997229881207\nb: -9223372036854775808\n");
   RosTestGolden("example_interfaces/srv/AddTwoInts_Response","000100000000000000000080",
 	"sum: -9223372036854775808\n");
+  RosTestGolden("example_interfaces/action/Fibonacci_Goal","000100005fe9e8b5",
+	"order: -1243027105\n");
+  RosTestGolden("example_interfaces/action/Fibonacci_Result","0001000000000000",
+	"sequence: []\n");
+  RosTestGolden("example_interfaces/action/Fibonacci_Feedback","0001000000000000",
+	"sequence: []\n");
+  RosTestGolden("example_interfaces/action/Fibonacci_SendGoal_Request","0001000001000001000000001e000100ffff74ff00000080",
+	"goal_id:\n  uuid:\n  - 1\n  - 0\n  - 0\n  - 1\n  - 0\n  - 0\n  - 0\n  - 0\n  - 30\n  - 0\n  - 1\n  - 0\n  - 255\n  - 255\n  - 116\n  - 255\ngoal:\n  order: -2147483648\n");
+  RosTestGolden("example_interfaces/action/Fibonacci_SendGoal_Response","0001000001000000ffffff7f00000000",
+	"accepted: true\nstamp:\n  sec: 2147483647\n  nanosec: 0\n");
+  RosTestGolden("example_interfaces/action/Fibonacci_GetResult_Request","000100000001a501ff01ff01000101ff00003e00",
+	"goal_id:\n  uuid:\n  - 0\n  - 1\n  - 165\n  - 1\n  - 255\n  - 1\n  - 255\n  - 1\n  - 0\n  - 1\n  - 1\n  - 255\n  - 0\n  - 0\n  - 62\n  - 0\n");
+  RosTestGolden("example_interfaces/action/Fibonacci_GetResult_Response","0001000000000000020000000100000000000000",
+	"status: 0\nresult:\n  sequence:\n  - 1\n  - 0\n");
+  RosTestGolden("example_interfaces/action/Fibonacci_FeedbackMessage","0001000000d800c900ff01ffff00ffff4dff01ff02000000ffffff7f00000000",
+	"goal_id:\n  uuid:\n  - 0\n  - 216\n  - 0\n  - 201\n  - 0\n  - 255\n  - 1\n  - 255\n  - 255\n  - 0\n  - 255\n  - 255\n  - 77\n  - 255\n  - 1\n  - 255\nfeedback:\n  sequence:\n  - 2147483647\n  - 0\n");
   RosTestGolden("geometry_msgs/msg/Vector3","000100009a9999999999b93f000000000000454077be9f1a2fdd5e40",
 	"x: 0.1\ny: 42.0\nz: 123.456\n");
   RosTestGolden("geometry_msgs/msg/Accel","0001000077be9f1a2fdd5e40fca9f1d24d6250bff168e388b5f8e43efca9f1d24d6250bf182d4454fb2109409a9999999999b93f",
@@ -361,6 +381,22 @@ U0 TestGolden()
 	"linear: 0.25\nangular: -1.25\n");
   RosTestGolden("turtlesim/srv/TeleportRelative_Response","0001000001",
 	"structure_needs_at_least_one_member: 1\n");
+  RosTestGolden("turtlesim/action/RotateAbsolute_Goal","000100000000803e",
+	"theta: 0.25\n");
+  RosTestGolden("turtlesim/action/RotateAbsolute_Result","000100000000f0c0",
+	"delta: -7.5\n");
+  RosTestGolden("turtlesim/action/RotateAbsolute_Feedback","0001000000004040",
+	"remaining: 3.0\n");
+  RosTestGolden("turtlesim/action/RotateAbsolute_SendGoal_Request","000100000100000000000100ff9b00907b01ffff0000c842",
+	"goal_id:\n  uuid:\n  - 1\n  - 0\n  - 0\n  - 0\n  - 0\n  - 0\n  - 1\n  - 0\n  - 255\n  - 155\n  - 0\n  - 144\n  - 123\n  - 1\n  - 255\n  - 255\ngoal:\n  theta: 100.0\n");
+  RosTestGolden("turtlesim/action/RotateAbsolute_SendGoal_Response","00010000000000000000000078030390",
+	"accepted: false\nstamp:\n  sec: 0\n  nanosec: 2416116600\n");
+  RosTestGolden("turtlesim/action/RotateAbsolute_GetResult_Request","00010000000100004900ff0197ff005e8e0100ff",
+	"goal_id:\n  uuid:\n  - 0\n  - 1\n  - 0\n  - 0\n  - 73\n  - 0\n  - 255\n  - 1\n  - 151\n  - 255\n  - 0\n  - 94\n  - 142\n  - 1\n  - 0\n  - 255\n");
+  RosTestGolden("turtlesim/action/RotateAbsolute_GetResult_Response","000100008000000000008044",
+	"status: -128\nresult:\n  delta: 1024.0\n");
+  RosTestGolden("turtlesim/action/RotateAbsolute_FeedbackMessage","0001000000ff00000100ff6b00ff00000100ff000000c842",
+	"goal_id:\n  uuid:\n  - 0\n  - 255\n  - 0\n  - 0\n  - 1\n  - 0\n  - 255\n  - 107\n  - 0\n  - 255\n  - 0\n  - 0\n  - 1\n  - 0\n  - 255\n  - 0\nfeedback:\n  remaining: 100.0\n");
   RosTestGolden("type_description_interfaces/msg/FieldType","00010000ff00000000000000ffffffffffffffff00000000000000000a000000626173655f6c696e6b00",
 	"type_id: 255\ncapacity: 18446744073709551615\nstring_capacity: 0\nnested_type_name: 'base_link'\n");
   RosTestGolden("type_description_interfaces/msg/Field","000100000a000000626173655f6c696e6b00000075a8b55c4a41f39b0100000000000000070000006120623a206300000100000000",

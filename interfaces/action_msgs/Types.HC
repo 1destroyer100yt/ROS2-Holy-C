@@ -27,9 +27,31 @@ class CMsg_action_msgs_GoalStatusArray
 };
 CRosType *ros_t_action_msgs_GoalStatusArray=NULL;
 
+class CSrv_action_msgs_CancelGoal_Request
+{
+  CMsg_action_msgs_GoalInfo goal_info;	//action_msgs/msg/GoalInfo
+};
+CRosType *ros_t_action_msgs_CancelGoal_Request=NULL;
+
+class CSrv_action_msgs_CancelGoal_Response
+{
+  I64 return_code;	//int8
+  CRosSeq goals_canceling;	//action_msgs/msg/GoalInfo sequence
+};
+#define ROS_action_msgs_CancelGoal_Response_ERROR_NONE	(0)
+#define ROS_action_msgs_CancelGoal_Response_ERROR_REJECTED	(1)
+#define ROS_action_msgs_CancelGoal_Response_ERROR_UNKNOWN_GOAL_ID	(2)
+#define ROS_action_msgs_CancelGoal_Response_ERROR_GOAL_TERMINATED	(3)
+CRosType *ros_t_action_msgs_CancelGoal_Response=NULL;
+
+CRosSrvType *ros_srv_action_msgs_CancelGoal=NULL;
+
 U0 RosIfaceLoad_action_msgs()
 {
   ros_t_action_msgs_GoalInfo=RosMsgDefine("action_msgs/msg/GoalInfo","# action_msgs/msg/GoalInfo (ROS 2 Jazzy definition, exported via rosbags)\nunique_identifier_msgs/UUID goal_id\nbuiltin_interfaces/Time stamp\n");
   ros_t_action_msgs_GoalStatus=RosMsgDefine("action_msgs/msg/GoalStatus","# action_msgs/msg/GoalStatus (ROS 2 Jazzy definition, exported via rosbags)\nint8 STATUS_UNKNOWN=0\nint8 STATUS_ACCEPTED=1\nint8 STATUS_EXECUTING=2\nint8 STATUS_CANCELING=3\nint8 STATUS_SUCCEEDED=4\nint8 STATUS_CANCELED=5\nint8 STATUS_ABORTED=6\nGoalInfo goal_info\nint8 status\n");
   ros_t_action_msgs_GoalStatusArray=RosMsgDefine("action_msgs/msg/GoalStatusArray","# action_msgs/msg/GoalStatusArray (ROS 2 Jazzy definition, exported via rosbags)\nGoalStatus[] status_list\n");
+  ros_srv_action_msgs_CancelGoal=RosSrvDefine("action_msgs/srv/CancelGoal","# Cancel one or more goals with the following policy:\n#\n# - If the goal ID is zeros and timestamp is zero, cancel all goals.\n# - If the goal ID is zeros and timestamp is not zero, cancel all goals accepted\n#   at or before the timestamp.\n# - If the goal ID is not zeros and timestamp is zero, cancel the goal with the\n#   given ID regardless of the time it was accepted.\n# - If the goal ID is not zeros and timestamp is not zero, cancel the goal with\n#   the given ID and all goals accepted at or before the timestamp.\n\n# Goal info describing the goals to cancel, see above.\nGoalInfo goal_info\n---\n##\n## Return codes.\n##\n\n# Indicates the request was accepted without any errors.\n#\n# One or more goals have transitioned to the CANCELING state. The\n# goals_canceling list is not empty.\nint8 ERROR_NONE=0\n\n# Indicates the request was rejected.\n#\n# No goals have transitioned to the CANCELING state. The goals_canceling list is\n# empty.\nint8 ERROR_REJECTED=1\n\n# Indicates the requested goal ID does not exist.\n#\n# No goals have transitioned to the CANCELING state. The goals_canceling list is\n# empty.\nint8 ERROR_UNKNOWN_GOAL_ID=2\n\n# Indicates the goal is not cancelable because it is already in a terminal state.\n#\n# No goals have transitioned to the CANCELING state. The goals_canceling list is\n# empty.\nint8 ERROR_GOAL_TERMINATED=3\n\n# Return code, see above definitions.\nint8 return_code\n\n# Goals that accepted the cancel request.\nGoalInfo[] goals_canceling\n");
+  ros_t_action_msgs_CancelGoal_Request=ros_srv_action_msgs_CancelGoal->req;
+  ros_t_action_msgs_CancelGoal_Response=ros_srv_action_msgs_CancelGoal->resp;
 }

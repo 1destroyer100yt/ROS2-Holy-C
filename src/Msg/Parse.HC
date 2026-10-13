@@ -385,3 +385,110 @@ CRosSrvType *RosSrvFind(U8 *name)
     return NULL;
   return RosMapGet(ros_srv_types,name);
 }
+
+//Where the next line that is exactly --- starts (from i), or -1.
+I64 RosSepLine(U8 *text,I64 i)
+{
+  I64 n=StrLen(text);
+  while (i<n) {
+    if ((i==0 || text[i-1]=='\n') && !StrNCmp(text+i,"---",3) &&
+	(text[i+3]=='\n' || text[i+3]=='\r' || !text[i+3]))
+      return i;
+    i++;
+  }
+  return -1;
+}
+
+//Index just past the --- line at cut.
+I64 RosSepSkip(U8 *text,I64 cut)
+{
+  cut+=3;
+  if (text[cut]=='\r')
+    cut++;
+  if (text[cut]=='\n')
+    cut++;
+  return cut;
+}
+
+//Define an action "pkg/action/Name" from .action text
+//(goal --- result --- feedback), the way rosidl does:
+//  Name_Goal, Name_Result, Name_Feedback          the three parts
+//  Name_SendGoal     {UUID goal_id, Name_Goal goal} -> {bool accepted, Time stamp}
+//  Name_GetResult    {UUID goal_id} -> {int8 status, Name_Result result}
+//  Name_FeedbackMessage {UUID goal_id, Name_Feedback feedback}
+//Needs unique_identifier_msgs and builtin_interfaces loaded.
+CRosActionType *RosActionDefine(U8 *name,U8 *text)
+{
+  CRosActionType *at;
+  I64 c1,c2;
+  U8 *g,*r,*f,*n,*s;
+  if (!ros_action_types)
+    ros_action_types=RosMapNew();
+  at=RosMapGet(ros_action_types,name);
+  if (at)
+    return at;
+  c1=RosSepLine(text,0);
+  if (c1<0) {
+    RosMsgErr("action needs two --- lines",name);
+    return NULL;
+  }
+  c2=RosSepLine(text,RosSepSkip(text,c1));
+  if (c2<0) {
+    RosMsgErr("action needs two --- lines",name);
+    return NULL;
+  }
+  g=RosStrSub(text,0,c1);
+  r=RosStrSub(text,RosSepSkip(text,c1),c2-RosSepSkip(text,c1));
+  f=StrNew(text+RosSepSkip(text,c2));
+  at=CAlloc(sizeof(CRosActionType));
+  at->name=StrNew(name);
+  n=MStrPrint("%s_Goal",name);
+  at->goal=RosMsgDefine(n,g);
+  Free(n);
+  n=MStrPrint("%s_Result",name);
+  if (at->goal)
+    at->result=RosMsgDefine(n,r);
+  Free(n);
+  n=MStrPrint("%s_Feedback",name);
+  if (at->result)
+    at->feedback=RosMsgDefine(n,f);
+  Free(n);
+  Free(g);
+  Free(r);
+  Free(f);
+  if (at->feedback) {
+    n=MStrPrint("%s_SendGoal",name);
+    s=MStrPrint("unique_identifier_msgs/UUID goal_id\n%s_Goal goal\n---\nbool accepted\nbuiltin_interfaces/Time stamp\n",name);
+    at->send_goal=RosSrvDefine(n,s);
+    Free(n);
+    Free(s);
+  }
+  if (at->send_goal) {
+    n=MStrPrint("%s_GetResult",name);
+    s=MStrPrint("unique_identifier_msgs/UUID goal_id\n---\nint8 status\n%s_Result result\n",name);
+    at->get_result=RosSrvDefine(n,s);
+    Free(n);
+    Free(s);
+  }
+  if (at->get_result) {
+    n=MStrPrint("%s_FeedbackMessage",name);
+    s=MStrPrint("unique_identifier_msgs/UUID goal_id\n%s_Feedback feedback\n",name);
+    at->feedback_msg=RosMsgDefine(n,s);
+    Free(n);
+    Free(s);
+  }
+  if (!at->feedback_msg) {	//the types defined so far stay (they're valid)
+    Free(at->name);
+    Free(at);
+    return NULL;
+  }
+  RosMapSet(ros_action_types,name,at);
+  return at;
+}
+
+CRosActionType *RosActionFind(U8 *name)
+{
+  if (!ros_action_types)
+    return NULL;
+  return RosMapGet(ros_action_types,name);
+}
