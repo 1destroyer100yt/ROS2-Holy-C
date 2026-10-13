@@ -185,7 +185,7 @@ Stage B — RTPS (DDS wire protocol, OMG DDSI-RTPS 2.x):
 ### Phase 8 — Robot-facing stuff
 - `tf2`-lite: transform tree, buffer with time, lookup + interpolation (quaternion math in F64).
 - `RvizLite`: 2D view of `LaserScan`, `OccupancyGrid`, `Path`, TF frames, at 640×480.
-- Rosbag-lite: record/play our own simple format (and maybe read MCAP later).
+- Rosbag: record/play rosbag2 MCAP bags, so they move between TempleOS and Linux.
 - Hardware: serial motor controllers, joysticks via PS/2 or serial. (USB is hard on TempleOS.)
 
 ---
@@ -340,7 +340,7 @@ What we do instead is **better**, not just a workaround:
   - [x] Turtlesim: same topics/services as ROS 2, pen trail, spawn/kill/clear/reset/teleport,
         TempleOS drawing + arrow-key teleop (VERIFY on real install); TurtleSquare launch demo
   - [ ] DolDoc clickable output (topic names that open an echo)
-  - [ ] ros2 bag (Phase 8)
+  - [x] ros2 bag record/play/info (Phase 8)
 - [x] Phase 5 plugins
   - [x] Registry: create/destroy, methods by name, base-type check (`PluginCreateAs`),
         `PluginClassesFor(base)`, manifests (`PluginDescribe`), replace methods at runtime
@@ -363,3 +363,5 @@ What we do instead is **better**, not just a workaround:
 - [~] Phase 8 tf/rviz-lite/rosbag-lite
   - [x] tf2: transforms, buffer with interpolation, lookups across the tree, /tf + /tf_static,
         tf2_echo (`src/Tf/`, docs/TF.md)
+  - [x] rosbag2 MCAP record/play/info, read + written against rosbags and mcap
+        (`src/Tools/Bag.HC`, tools/bagtest); compressed chunks not supported

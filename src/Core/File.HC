@@ -28,3 +28,13 @@ Bool RosFileWrite(U8 *path,U8 *data,I64 len)
 //@host: if (!fh) return FALSE;
 //@host: Bool ok=fwrite(data,1,len,fh)==(size_t)len; fclose(fh); return ok;
 }
+
+//Make a directory (no error if it exists). TRUE if it's there after.
+Bool RosDirMake(U8 *path)
+{
+//@host-skip-begin
+  DirMk(path);	//VERIFY: TempleOS DirMk
+  return TRUE;
+//@host-skip-end
+//@host: mkdir((char *)path,0755); return TRUE;
+}

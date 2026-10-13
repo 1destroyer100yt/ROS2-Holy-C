@@ -17,6 +17,7 @@ Cd(__DIR__);;
 #include "../tools/cpp2hc/examples/polygon/Polygons.HC"
 #include "TestPlugin.HC"
 #include "TestTf.HC"
+#include "TestBag.HC"
 
 I64 RosTestsRun()
 {
@@ -31,5 +32,6 @@ I64 RosTestsRun()
   TestTools();
   TestPlugin();
   TestTf();
+  TestBag();
   return RosTestSummary();
 }

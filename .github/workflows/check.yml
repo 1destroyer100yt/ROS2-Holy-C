@@ -5,8 +5,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install Cyclone DDS (for the DDS interop tests)
-        run: python3 -m pip install --break-system-packages cyclonedds || python3 -m pip install cyclonedds
+      - name: Install Cyclone DDS, rosbags and mcap (for the interop tests)
+        run: python3 -m pip install --break-system-packages cyclonedds rosbags mcap || python3 -m pip install cyclonedds rosbags mcap
       - name: Host checks (cpp2hc, lint, HolyC unit tests, DDS interop, F32)
         run: tools/check.sh
       - name: IP stack against the Linux kernel (TAP and SLIP, needs root)

@@ -163,32 +163,6 @@ U0 RosTfSend(CRosTfBroadcaster *br,U8 *parent,U8 *child,I64 stamp,CRosTf *t)
   RosPublishLoaned(br->pub,m);
 }
 
-//Add a fixed-point number with d decimals.
-U0 RosStrBufAddFixed(CRosStrBuf *sb,F64 x,I64 d)
-{
-  I64 scale=1,i,v,ip,fp;
-  for (i=0;i<d;i++)
-    scale*=10;
-  v=ToI64(Abs(x)*scale+0.5);
-  if (x<0.0 && v)
-    RosStrBufAddC(sb,'-');
-  ip=v/scale;
-  fp=v%scale;
-  RosStrBufAddI64(sb,ip);
-  if (d) {
-    RosStrBufAddC(sb,'.');
-    i=scale/10;
-    while (i>fp && i>1) {
-      RosStrBufAddC(sb,'0');
-      i/=10;
-    }
-    if (fp)
-      RosStrBufAddI64(sb,fp);
-    else if (scale>1)
-      RosStrBufAddC(sb,'0');
-  }
-}
-
 //What tf2_echo prints for T(target <- source).
 U8 *RosTfEchoFmt(CRosTf *t,I64 stamp)
 {
