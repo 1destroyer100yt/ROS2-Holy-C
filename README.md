@@ -8,6 +8,7 @@ ROS 2, written from the ground up in pure HolyC for TempleOS.
 - Messages (179 ROS 2 interfaces): [interfaces/](interfaces/README.md), demo in [examples/MsgDemo.HC](examples/MsgDemo.HC)
 - Nodes, topics, services, parameters: [docs/GRAPH.md](docs/GRAPH.md), examples in [examples/](examples/)
 - The ros2 command line, launch, turtlesim: [docs/TOOLS.md](docs/TOOLS.md)
+- Talking to real ROS 2 over the network (DDS/RTPS): [docs/NETWORK.md](docs/NETWORK.md)
 
 ## Test it (no TempleOS needed)
 ```

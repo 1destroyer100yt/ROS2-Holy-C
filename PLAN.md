@@ -349,5 +349,11 @@ What we do instead is **better**, not just a workaround:
         picks its plugin from a parameter and swaps it while running
   - [ ] Test `PluginLoad`/`PluginReload` (ExeFile) on a real TempleOS install
 - [ ] Phase 6 serial bridge
-- [ ] Phase 7 networking + RTPS
+- [~] Phase 7 networking + RTPS (`src/Dds/`, docs/NETWORK.md)
+  - [x] RTPS messages, SPDP + SEDP discovery, best-effort + reliable writers/readers,
+        transient local, GAP, DATA_FRAG + NACK_FRAG/HEARTBEAT_FRAG
+  - [x] ROS<->DDS bridge (`rt/` names, dds_ type names, ros_discovery_info)
+  - [x] Interop test against real Cyclone DDS over loopback with packet loss (tools/ddstest)
+  - [ ] Services over DDS, remote topics/nodes in the CLI, Jazzy type hashes
+  - [ ] IP stack (Ethernet/ARP/IPv4/UDP/IGMP) + NIC driver for TempleOS
 - [ ] Phase 8 tf/rviz-lite/rosbag-lite

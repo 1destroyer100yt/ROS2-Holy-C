@@ -90,6 +90,8 @@ CRosPub *RosPubNew(CRosNode *n,U8 *topic,CRosType *t,CRosQoS *qos)
   }
   RosGraphUnlock();
   Free(fqn);
+  if (ros_hook_pub_new)
+    (*ros_hook_pub_new)(p);
   return p;
 }
 
@@ -128,6 +130,8 @@ U0 RosPublishLoaned(CRosPub *p,U8 *msg)
   }
   p->sent++;
   RosGraphUnlock();
+  if (ros_hook_publish && p->dds)
+    (*ros_hook_publish)(p,msg);
   RosSharedRelease(sh);
 }
 
@@ -160,6 +164,8 @@ U0 RosPubDel(CRosPub *p)
   I64 i;
   if (!p)
     return;
+  if (ros_hook_pub_del && p->dds)
+    (*ros_hook_pub_del)(p);
   RosGraphLock();
   RosVecRemovePtr(p->topic->pubs,p);
   RosVecRemovePtr(p->node->pubs,p);
@@ -218,6 +224,8 @@ CRosSub *RosSubNew(CRosNode *n,U8 *topic,CRosType *t,CRosQoS *qos,
   }
   RosGraphUnlock();
   Free(fqn);
+  if (ros_hook_sub_new)
+    (*ros_hook_sub_new)(s);
   return s;
 }
 
@@ -268,6 +276,8 @@ U0 RosSubDel(CRosSub *s)
   CRosShared *sh;
   if (!s)
     return;
+  if (ros_hook_sub_del && s->dds)
+    (*ros_hook_sub_del)(s);
   RosGraphLock();
   RosVecRemovePtr(s->topic->subs,s);
   RosVecRemovePtr(s->node->subs,s);

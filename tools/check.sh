@@ -27,6 +27,8 @@ echo "== threads (publishers + executor on different threads, ThreadSanitizer)"
 python3 tools/hctest/hc2c.py c Load.HC -o "$tmp/libg.c"
 gcc -O1 -g -fsanitize=thread -w -fwrapv -fms-extensions -include "$tmp/libg.c" tools/hctest/threads_check.c -o "$tmp/thr" -lpthread -lm
 TSAN_OPTIONS=halt_on_error=1 "$tmp/thr"
+echo "== DDS interop with Cyclone DDS (skipped if cyclonedds isn't installed)"
+tools/ddstest/run.sh | grep -E "^RESULT|^ddstest"
 echo "== F32 vs C float"
 python3 tools/hctest/hc2c.py c src/Load.HC -o "$tmp/lib.c"
 gcc -O2 -fwrapv -w -fms-extensions -include "$tmp/lib.c" tools/hctest/f32_check.c -o "$tmp/f32" -lm

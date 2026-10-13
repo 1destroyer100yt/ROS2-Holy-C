@@ -105,6 +105,7 @@ class CRosPub
   CRosQoS qos;
   CRosVec *history;	//CRosShared * kept for transient local
   I64 id,sent,incompatible;
+  U8 *dds;		//network side (src/Dds/Bridge.HC), if any
 };
 
 class CRosSub
@@ -117,6 +118,7 @@ class CRosSub
   U0 (*cb)(U8 *msg,U8 *user);
   U8 *user;
   I64 id,received,dropped,expired,incompatible;
+  U8 *dds;		//network side (src/Dds/Bridge.HC), if any
 };
 
 class CRosTimer
@@ -174,6 +176,14 @@ class CRosGraph
 };
 
 CRosGraph *ros_graph=NULL;
+
+//Hooks for a network transport (src/Dds/Bridge.HC sets them). Called
+//without the graph lock held.
+U0 (*ros_hook_pub_new)(U8 *p)=NULL;
+U0 (*ros_hook_pub_del)(U8 *p)=NULL;
+U0 (*ros_hook_sub_new)(U8 *s)=NULL;
+U0 (*ros_hook_sub_del)(U8 *s)=NULL;
+U0 (*ros_hook_publish)(U8 *p,U8 *msg)=NULL;
 Bool ros_ok=TRUE;	//RosShutdown() clears it; spinning stops
 
 CRosGraph *RosGraph()

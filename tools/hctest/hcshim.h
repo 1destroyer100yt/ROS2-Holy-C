@@ -9,6 +9,12 @@
 #include <stdarg.h>
 #include <math.h>
 #include <time.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 typedef void U0;
 typedef int8_t I8;
