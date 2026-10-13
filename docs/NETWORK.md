@@ -21,11 +21,19 @@ RosDdsStop;
 - **ROS 2 conventions:** `rt/` topic prefix, `pkg::msg::dds_::Type_` type names, XCDR1 payloads,
   and `ros_discovery_info` so `ros2 node list` shows our nodes. The participant's user data is
   `enclave=/;`.
+- **Services:** `rq/<name>Request` and `rr/<name>Reply` with the `rmw_cyclonedds` request header
+  (client id + sequence number), in both directions. A client counts as ready only once the
+  remote request reader has acknowledged us, which avoids the DDS discovery race that drops
+  the first request.
+- **CLI sees other machines:** `RosNodeList`, `RosTopicList`, `RosServiceList` and
+  `RosTopicEcho` include remote nodes, topics and services, read from SEDP and
+  `ros_discovery_info`.
 
 ## How it's tested
 `tools/ddstest/run.sh` runs the whole HolyC stack against **Cyclone DDS** (the DDS behind
 `rmw_cyclonedds`) over loopback, with every 7th outgoing packet deliberately dropped:
 - topics both ways (reliable)
+- service calls both ways; Cyclone's node, topic and service show up in our CLI
 - a 100 KB message from us (fragmented) and a 5 KB transient-local message from Cyclone
   (fragmented, delivered to a late joiner)
 - Cyclone reads our `ros_discovery_info` and finds our node
@@ -33,9 +41,8 @@ RosDdsStop;
 `pip install cyclonedds` enables it; `tools/check.sh` and CI run it.
 
 ## Not done yet
-- Services over DDS (`rq/`/`rr/` topics; `rmw_cyclonedds` and `rmw_fastrtps` use different
-  request headers)
-- Showing remote topics and nodes in `RosTopicList` / `RosNodeList`
+- `rmw_fastrtps`-style services (Fast DDS keeps the request id in inline QoS instead of a header).
+  Topics work with every vendor.
 - Jazzy type hashes in endpoint user data. These aren't needed for DDS matching, but
   `ros2 topic info -v` shows them.
 - On TempleOS, UDP needs our own IP stack and a NIC driver (`src/Net`). The code above runs

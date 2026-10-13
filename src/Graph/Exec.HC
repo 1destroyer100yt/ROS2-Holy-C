@@ -53,6 +53,8 @@ I64 RosExecSpinSome(CRosExec *e)
   I64 i,j,k,n_ready,work=0;
   CRosNode *n;
   CRosSub *s;
+  if (ros_hook_spin_extra)
+    (*ros_hook_spin_extra)();
   for (i=0;i<e->nodes->len;i++) {
     n=RosVecGetI64(e->nodes,i);
     for (j=0;j<n->timers->len;j++)

@@ -1605,7 +1605,9 @@ I64 RosDdsSpinOnce(CRtpsPart *pt)
     unacked=FALSE;
     for (j=0;j<w->readers->len;j++) {
       rp=RosVecGetI64(w->readers,j);
-      if (rp->reliable && rp->acked<w->seq) {
+      //unacked data, or a reader that hasn't acked us yet (it may not
+      //know us yet: keep asking quickly until it does)
+      if (rp->reliable && (rp->acked<w->seq || !rp->last_count)) {
         unacked=TRUE;
         RtpsSendHeartbeat(pt,w,rp,FALSE);
       }

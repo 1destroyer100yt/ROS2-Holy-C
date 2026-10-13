@@ -6,3 +6,6 @@ Cd(__DIR__);;
 #include "Rtps.HC"
 #include "Dds.HC"
 #include "Bridge.HC"
+#include "BridgeSrv.HC"
+#include "BridgeGraph.HC"
+#include "BridgeStart.HC"

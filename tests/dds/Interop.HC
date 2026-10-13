@@ -21,6 +21,12 @@ U0 InteropFromCy(CMsg_std_msgs_String *m,CInterop *x)
     x->from_cy++;
 }
 
+U0 InteropAdd(CSrv_example_interfaces_AddTwoInts_Request *req,
+	CSrv_example_interfaces_AddTwoInts_Response *resp,U8 *user)
+{
+  resp->sum=req->a+req->b;
+}
+
 U0 InteropBig(CMsg_std_msgs_String *m,CInterop *x)
 {
   I64 i,n=StrLen(m->data);
@@ -43,6 +49,8 @@ I64 DdsInterop()
   CMsg_std_msgs_String m;
   I64 end,next=0,count=0,big_sent=0;
   CRtpsWriter *w;
+  U8 *s;
+  Bool node_ok,topic_ok,srvlist_ok,call_ok;
   RosIfaceLoadAll();
   MemSet(&x,0,sizeof(CInterop));
   pt=RosDdsStart(0,FALSE);
@@ -62,6 +70,7 @@ I64 DdsInterop()
   RosSubNew(n,"chatter_echo",ros_t_std_msgs_String,&rel,&InteropEcho,&x);
   RosSubNew(n,"from_cyclone",ros_t_std_msgs_String,&rel,&InteropFromCy,&x);
   RosSubNew(n,"big_string",ros_t_std_msgs_String,&tl,&InteropBig,&x);
+  RosServiceNew(n,"holyc_add",ros_srv_example_interfaces_AddTwoInts,&InteropAdd,NULL);
   end=RosTimeSteadyNs()+20*ROS_NS_PER_SEC;
   while (RosTimeSteadyNs()<end) {
     RosDdsSpin();
@@ -86,12 +95,28 @@ I64 DdsInterop()
       break;
     Sleep(1);
   }
-  Print("RESULT holyc: remote participants=%d echoes=%d from_cyclone=%d big_string=%d -> %s\n",
-	pt->remote->len,x.echoes,x.from_cy,x.big,"");
+  //the CLI sees the other machine
+  s=RosNodeListStr();
+  node_ok=RosStrFind(s,"/cyclone_node\n")>=0 && RosStrFind(s,"/holyc_node\n")>=0;
+  Free(s);
+  s=RosTopicListStr(TRUE);
+  topic_ok=RosStrFind(s,"/cyclone_only [std_msgs/msg/String]\n")>=0;
+  Free(s);
+  s=RosServiceListStr(TRUE);
+  srvlist_ok=RosStrFind(s,"/add_two_ints [example_interfaces/srv/AddTwoInts]\n")>=0;
+  Free(s);
+  //call a service that lives in Cyclone, through the CLI
+  ros_cli_assist=e;
+  s=RosServiceCallStr("/add_two_ints","example_interfaces/srv/AddTwoInts","{a: 20, b: 22}");
+  call_ok=RosStrFind(s,"sum: 42")>=0;
+  Free(s);
+  ros_cli_assist=NULL;
+  Print("RESULT holyc: remote participants=%d echoes=%d from_cyclone=%d big_string=%d nodes=%d topics=%d services=%d call=%d\n",
+	pt->remote->len,x.echoes,x.from_cy,x.big,node_ok,topic_ok,srvlist_ok,call_ok);
   RosNodeDel(n);
   RosExecDel(e);
   RosDdsStop();
-  if (x.echoes>=5 && x.from_cy>=5 && x.big>=1)
+  if (x.echoes>=5 && x.from_cy>=5 && x.big>=1 && node_ok && topic_ok && srvlist_ok && call_ok)
     return 0;
   return 1;
 }

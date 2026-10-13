@@ -101,16 +101,56 @@ CRosNode *RosNodeFind(U8 *fqn)
   return hit;
 }
 
+//Remote (other machines') topics or services: name -> type name.
+U8 *RosCliRemoteType(U8 *name,Bool services)
+{
+  CRosVec *names=RosVecNew(8),*types=RosVecNew(8);
+  U8 *hit=NULL;
+  I64 i;
+  if (services && ros_hook_remote_services)
+    (*ros_hook_remote_services)(names,types);
+  if (!services && ros_hook_remote_topics)
+    (*ros_hook_remote_topics)(names,types);
+  for (i=0;i<names->len;i++)
+    if (!hit && !StrCmp(RosVecGetI64(names,i),name))
+      hit=StrNew(RosVecGetI64(types,i));
+  RosStrVecDel(names);
+  RosStrVecDel(types);
+  return hit;
+}
+
 CRosType *RosTopicTypeOf(U8 *name)
 {
   CRosTopic *tp;
   CRosType *t=NULL;
+  U8 *rt;
   RosGraphLock();
   tp=RosMapGet(RosGraph()->topics,name);
   if (tp)
     t=tp->type;
   RosGraphUnlock();
+  if (!t) {
+    rt=RosCliRemoteType(name,FALSE);
+    if (rt) {
+      t=RosTypeFind(rt);
+      Free(rt);
+    }
+  }
   return t;
+}
+
+//Sorted, de-duplicated (in place).
+U0 RosStrVecSortUnique(CRosVec *v)
+{
+  I64 i=1;
+  RosStrVecSort(v);
+  while (i<v->len) {
+    if (!StrCmp(RosVecGetI64(v,i),RosVecGetI64(v,i-1))) {
+      Free(RosVecGetI64(v,i));
+      RosVecRemove(v,i);
+    } else
+      i++;
+  }
 }
 
 CRosVec *RosGraphNames(CRosMap *m)
@@ -141,7 +181,9 @@ U8 *RosNodeListStr()
       RosVecPushI64(v,StrNew(n->fqn));
   }
   RosGraphUnlock();
-  RosStrVecSort(v);
+  if (ros_hook_remote_nodes)
+    (*ros_hook_remote_nodes)(v);
+  RosStrVecSortUnique(v);
   for (i=0;i<v->len;i++) {
     RosStrBufAdd(sb,RosVecGetI64(v,i));
     RosStrBufAddC(sb,'\n');
@@ -212,9 +254,26 @@ U0 RosNodeInfo(U8 *fqn)
 
 //---- topics
 
+//Local names plus other machines' (sorted, unique).
+CRosVec *RosCliAllNames(CRosMap *local,Bool services)
+{
+  CRosVec *v=RosGraphNames(local),*names=RosVecNew(8),*types=RosVecNew(8);
+  I64 i;
+  if (services && ros_hook_remote_services)
+    (*ros_hook_remote_services)(names,types);
+  if (!services && ros_hook_remote_topics)
+    (*ros_hook_remote_topics)(names,types);
+  for (i=0;i<names->len;i++)
+    RosVecPushI64(v,StrNew(RosVecGetI64(names,i)));
+  RosStrVecDel(names);
+  RosStrVecDel(types);
+  RosStrVecSortUnique(v);
+  return v;
+}
+
 U8 *RosTopicListStr(Bool types)
 {
-  CRosVec *v=RosGraphNames(RosGraph()->topics);
+  CRosVec *v=RosCliAllNames(RosGraph()->topics,FALSE);
   CRosStrBuf *sb=RosStrBufNew();
   CRosType *t;
   I64 i;
@@ -513,9 +572,10 @@ U0 RosTopicHz(U8 *name)
 
 U8 *RosServiceListStr(Bool types)
 {
-  CRosVec *v=RosGraphNames(RosGraph()->services);
+  CRosVec *v=RosCliAllNames(RosGraph()->services,TRUE);
   CRosStrBuf *sb=RosStrBufNew();
   CRosService *s;
+  U8 *rt;
   I64 i;
   for (i=0;i<v->len;i++) {
     RosStrBufAdd(sb,RosVecGetI64(v,i));
@@ -528,6 +588,15 @@ U8 *RosServiceListStr(Bool types)
         RosStrBufAddC(sb,']');
       }
       RosGraphUnlock();
+      if (!s) {
+        rt=RosCliRemoteType(RosVecGetI64(v,i),TRUE);
+        if (rt) {
+          RosStrBufAdd(sb," [");
+          RosStrBufAdd(sb,rt);
+          RosStrBufAddC(sb,']');
+          Free(rt);
+        }
+      }
     }
     RosStrBufAddC(sb,'\n');
   }
@@ -552,6 +621,7 @@ U8 *RosServiceCallStr(U8 *name,U8 *type_name,U8 *values)
   CRosClient *c;
   CRosStrBuf *sb;
   U8 *req,*resp,*y;
+  I64 end;
   if (!st)
     return MStrPrint("Unknown service type '%s'\n",type_name);
   req=RosMsgNew(st->req);
@@ -562,6 +632,9 @@ U8 *RosServiceCallStr(U8 *name,U8 *type_name,U8 *values)
   n=RosCliNodeNew();
   c=RosClientNew(n,name,st);
   sb=RosStrBufNew();
+  end=RosTimeSteadyNs()+2*ROS_NS_PER_SEC;	//give network discovery a moment
+  while (c && !RosClientReady(c) && c->dds && RosTimeSteadyNs()<end && ros_ok)
+    RosCliSpinOnce(n,10*ROS_NS_PER_MS);
   if (!c || !RosClientReady(c))
     RosStrBufAdd(sb,"waiting for service to become available...\nservice not available\n");
   else {

@@ -140,6 +140,7 @@ class CRosService
   U8 *user;
   CRosVec *queue;	//CRosSrvReq *
   I64 lock,handled;
+  U8 *dds;		//network side, if any
 };
 
 class CRosClient
@@ -149,12 +150,14 @@ class CRosClient
   CRosSrvType *st;
   CRosVec *pending;	//CRosPending *
   I64 lock,id,next_seq;
+  U8 *dds;		//network side, if any
 };
 
 class CRosSrvReq	//a request waiting at a service
 {
   I64 cli_id,seq;
   U8 *req;
+  U8 *remote;		//set by the network side for requests from other machines
 };
 
 class CRosPending	//a request a client is waiting on
@@ -184,6 +187,18 @@ U0 (*ros_hook_pub_del)(U8 *p)=NULL;
 U0 (*ros_hook_sub_new)(U8 *s)=NULL;
 U0 (*ros_hook_sub_del)(U8 *s)=NULL;
 U0 (*ros_hook_publish)(U8 *p,U8 *msg)=NULL;
+U0 (*ros_hook_srv_new)(U8 *s)=NULL;
+U0 (*ros_hook_srv_del)(U8 *s)=NULL;
+U0 (*ros_hook_srv_reply)(U8 *s,U8 *r,U8 *resp)=NULL;	//r: CRosSrvReq with ->remote
+U0 (*ros_hook_cli_new)(U8 *c)=NULL;
+U0 (*ros_hook_cli_del)(U8 *c)=NULL;
+Bool (*ros_hook_cli_ready)(U8 *c)=NULL;
+Bool (*ros_hook_cli_call)(U8 *c,I64 seq,U8 *req)=NULL;
+//remote graph (for the CLI): fill vecs with new strings
+U0 (*ros_hook_remote_topics)(CRosVec *names,CRosVec *types)=NULL;
+U0 (*ros_hook_remote_services)(CRosVec *names,CRosVec *types)=NULL;
+U0 (*ros_hook_remote_nodes)(CRosVec *fqns)=NULL;
+I64 (*ros_hook_spin_extra)()=NULL;	//also pumped by executors (host tests)
 Bool ros_ok=TRUE;	//RosShutdown() clears it; spinning stops
 
 CRosGraph *RosGraph()

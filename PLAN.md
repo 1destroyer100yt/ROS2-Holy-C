@@ -354,6 +354,7 @@ What we do instead is **better**, not just a workaround:
         transient local, GAP, DATA_FRAG + NACK_FRAG/HEARTBEAT_FRAG
   - [x] ROS<->DDS bridge (`rt/` names, dds_ type names, ros_discovery_info)
   - [x] Interop test against real Cyclone DDS over loopback with packet loss (tools/ddstest)
-  - [ ] Services over DDS, remote topics/nodes in the CLI, Jazzy type hashes
+  - [x] Services over DDS (rmw_cyclonedds request header), remote nodes/topics/services in the CLI
+  - [ ] rmw_fastrtps-style services, Jazzy type hashes
   - [ ] IP stack (Ethernet/ARP/IPv4/UDP/IGMP) + NIC driver for TempleOS
 - [ ] Phase 8 tf/rviz-lite/rosbag-lite

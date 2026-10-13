@@ -53,6 +53,21 @@ class ParticipantEntitiesInfo_(IdlStruct, typename="rmw_dds_common::msg::dds_::P
     node_entities_info_seq: types.sequence[NodeEntitiesInfo_]
 
 
+@dataclass
+class AddReq_(IdlStruct, typename="example_interfaces::srv::dds_::AddTwoInts_Request_"):
+    client: types.uint64   # rmw_cyclonedds request header
+    seq: types.int64
+    a: types.int64
+    b: types.int64
+
+
+@dataclass
+class AddResp_(IdlStruct, typename="example_interfaces::srv::dds_::AddTwoInts_Response_"):
+    client: types.uint64
+    seq: types.int64
+    sum: types.int64
+
+
 def main():
     timeout = float(sys.argv[1]) if len(sys.argv) > 1 else 20.0
     rel = Qos(Policy.Reliability.Reliable(max_blocking_time=duration(milliseconds=100)))
@@ -65,6 +80,16 @@ def main():
     big_w = DataWriter(dp, Topic(dp, "rt/big_string", String_), qos=rel_tl)
     big_r = DataReader(dp, Topic(dp, "rt/holyc_big", String_), qos=rel)
     info = DataReader(dp, Topic(dp, "ros_discovery_info", ParticipantEntitiesInfo_), qos=rel_tl)
+    only = DataWriter(dp, Topic(dp, "rt/cyclone_only", String_), qos=rel)
+    info_w = DataWriter(dp, Topic(dp, "ros_discovery_info", ParticipantEntitiesInfo_), qos=rel_tl)
+    gid = list(dp.guid.bytes) if hasattr(dp.guid, "bytes") else list(bytes(dp.guid))
+    info_w.write(ParticipantEntitiesInfo_(gid=Gid_(data=gid), node_entities_info_seq=[
+        NodeEntitiesInfo_(node_namespace="/", node_name="cyclone_node", reader_gid_seq=[], writer_gid_seq=[])]))
+    srv_rq = DataReader(dp, Topic(dp, "rq/add_two_intsRequest", AddReq_), qos=rel)
+    srv_rr = DataWriter(dp, Topic(dp, "rr/add_two_intsReply", AddResp_), qos=rel)
+    cli_rq = DataWriter(dp, Topic(dp, "rq/holyc_addRequest", AddReq_), qos=rel)
+    cli_rr = DataReader(dp, Topic(dp, "rr/holyc_addReply", AddResp_), qos=rel)
+    served, answers = 0, 0
     big_w.write(String_(data="B" * 5000))
     got_chatter, got_big, saw_node, n = 0, 0, False, 0
     end = time.time() + timeout
@@ -81,14 +106,24 @@ def main():
             for ni in getattr(s, "node_entities_info_seq", []):
                 if ni.node_name == "holyc_node":
                     saw_node = True
+        for q in srv_rq.take(N=10):
+            if hasattr(q, "a"):
+                srv_rr.write(AddResp_(client=q.client, seq=q.seq, sum=q.a + q.b))
+                served += 1
+        for a in cli_rr.take(N=10):
+            if hasattr(a, "sum") and a.client == 777 and a.sum == a.seq + 100:
+                answers += 1
         n += 1
         from_cy.write(String_(data="cyclone %d" % n))
-        if got_chatter >= 5 and got_big and saw_node and n > 40:
+        only.write(String_(data="only %d" % n))
+        if cli_rq.get_matched_subscriptions():
+            cli_rq.write(AddReq_(client=777, seq=n, a=n, b=100))
+        if got_chatter >= 5 and got_big and saw_node and served and answers and n > 40:
             break
         time.sleep(0.05)
-    ok = got_chatter >= 5 and got_big >= 1 and saw_node
-    print("RESULT cyclone: chatter=%d holyc_big=%d saw_holyc_node=%s -> %s"
-          % (got_chatter, got_big, saw_node, "OK" if ok else "FAIL"), flush=True)
+    ok = got_chatter >= 5 and got_big >= 1 and saw_node and served >= 1 and answers >= 1
+    print("RESULT cyclone: chatter=%d holyc_big=%d saw_holyc_node=%s served=%d holyc_answers=%d -> %s"
+          % (got_chatter, got_big, saw_node, served, answers, "OK" if ok else "FAIL"), flush=True)
     return 0 if ok else 1
 
 

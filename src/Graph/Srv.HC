@@ -40,6 +40,8 @@ CRosService *RosServiceNew(CRosNode *n,U8 *name,CRosSrvType *st,
   RosMapSet(ros_graph->services,fqn,s);
   RosVecPushI64(n->srvs,s);
   RosGraphUnlock();
+  if (ros_hook_srv_new)
+    (*ros_hook_srv_new)(s);
   return s;
 }
 
@@ -49,6 +51,8 @@ U0 RosServiceDel(CRosService *s)
   CRosSrvReq *r;
   if (!s)
     return;
+  if (ros_hook_srv_del && s->dds)
+    (*ros_hook_srv_del)(s);
   RosGraphLock();
   RosMapRemove(ros_graph->services,s->name);
   RosVecRemovePtr(s->node->srvs,s);
@@ -56,6 +60,7 @@ U0 RosServiceDel(CRosService *s)
   for (i=0;i<s->queue->len;i++) {
     r=RosVecGetI64(s->queue,i);
     RosMsgDel(s->st->req,r->req);
+    Free(r->remote);
     Free(r);
   }
   RosVecDel(s->queue);
@@ -85,6 +90,8 @@ CRosClient *RosClientNew(CRosNode *n,U8 *name,CRosSrvType *st)
   RosVecPushI64(ros_graph->clients,c);
   RosVecPushI64(n->clis,c);
   RosGraphUnlock();
+  if (ros_hook_cli_new)
+    (*ros_hook_cli_new)(c);
   return c;
 }
 
@@ -100,6 +107,8 @@ U0 RosClientDel(CRosClient *c)
   I64 i;
   if (!c)
     return;
+  if (ros_hook_cli_del && c->dds)
+    (*ros_hook_cli_del)(c);
   RosGraphLock();
   RosVecRemovePtr(ros_graph->clients,c);
   RosVecRemovePtr(c->node->clis,c);
@@ -111,7 +120,8 @@ U0 RosClientDel(CRosClient *c)
   Free(c);
 }
 
-//Is there a service with a matching type to talk to?
+//Is there a service with a matching type to talk to (here or, with
+//networking on, on another machine)?
 Bool RosClientReady(CRosClient *c)
 {
   CRosService *s;
@@ -120,8 +130,26 @@ Bool RosClientReady(CRosClient *c)
   s=RosMapGet(ros_graph->services,c->name);
   ok=s && s->st==c->st;
   RosGraphUnlock();
+  if (!ok && ros_hook_cli_ready && c->dds)
+    ok=(*ros_hook_cli_ready)(c);
   return ok;
 }
+
+CRosPending *RosClientAddPending(CRosClient *c,U8 *req,U0 (*cb)(U8 *resp,I64 seq,U8 *user),
+	U8 *user)
+{
+  CRosPending *p=CAlloc(sizeof(CRosPending));
+  RosLockGet(&c->lock);
+  p->seq=c->next_seq++;
+  p->req=RosMsgDup(c->st->req,req);
+  p->cb=cb;
+  p->user=user;
+  RosVecPushI64(c->pending,p);
+  RosLockPut(&c->lock);
+  return p;
+}
+
+extern U0 RosClientCancel(CRosClient *c,I64 seq);
 
 //Send a request (copied). cb(resp,seq,user) runs when the answer
 //comes back; resp is only valid during the callback. Returns the
@@ -136,6 +164,12 @@ I64 RosClientCall(CRosClient *c,U8 *req,U0 (*cb)(U8 *resp,I64 seq,U8 *user),U8 *
   s=RosMapGet(ros_graph->services,c->name);
   if (!s || s->st!=c->st) {
     RosGraphUnlock();
+    if (ros_hook_cli_call && c->dds && ros_hook_cli_ready && (*ros_hook_cli_ready)(c)) {
+      p=RosClientAddPending(c,req,cb,user);
+      if ((*ros_hook_cli_call)(c,p->seq,req))
+        return p->seq;
+      RosClientCancel(c,p->seq);
+    }
     RosGraphErr("no service to call",c->name);
     return -1;
   }
@@ -179,6 +213,14 @@ Bool RosServiceExecOne(CRosService *s)
   (*s->cb)(r->req,resp,s->user);
   s->handled++;
   RosMsgDel(s->st->req,r->req);
+  if (r->remote) {	//asked over the network: answer there
+    if (ros_hook_srv_reply)
+      (*ros_hook_srv_reply)(s,r,resp);
+    RosMsgDel(s->st->resp,resp);
+    Free(r->remote);
+    Free(r);
+    return TRUE;
+  }
   //hand the response to the client, if it's still there
   RosGraphLock();
   c=RosClientById(r->cli_id);
