@@ -348,7 +348,7 @@ What we do instead is **better**, not just a workaround:
   - [x] Converted C++ tutorial plugins compile and run in host tests; `examples/PluginNode.HC`
         picks its plugin from a parameter and swaps it while running
   - [ ] Test `PluginLoad`/`PluginReload` (ExeFile) on a real TempleOS install
-- [ ] Phase 6 serial bridge
+- [x] Phase 6 serial bridge: done as SLIP (IP over the serial port), so DDS runs over it unchanged
 - [~] Phase 7 networking + RTPS (`src/Dds/`, docs/NETWORK.md)
   - [x] RTPS messages, SPDP + SEDP discovery, best-effort + reliable writers/readers,
         transient local, GAP, DATA_FRAG + NACK_FRAG/HEARTBEAT_FRAG
@@ -358,5 +358,6 @@ What we do instead is **better**, not just a workaround:
   - [ ] rmw_fastrtps-style services, Jazzy type hashes
   - [x] IP stack (Ethernet/ARP/IPv4+fragments/UDP/ICMP/IGMP), tested against Linux over TAP
   - [x] Full stack over our IP stack + multicast against Cyclone DDS (TAP)
-  - [ ] NIC driver for TempleOS (e1000) and SLIP serial link
+  - [x] SLIP serial link (tested over a pty against Linux) - this is also Phase 6, in pure HolyC
+  - [~] e1000 driver written (VERIFY on QEMU), `RosNetwork(...)` / `RosNetworkSlip(...)` one-liners
 - [ ] Phase 8 tf/rviz-lite/rosbag-lite

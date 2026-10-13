@@ -6,7 +6,9 @@ import struct
 import sys
 import time
 
-DST = ("10.77.0.2", 7777)
+DST = (os.environ.get("NET_DST", "10.77.0.2"), 7777)
+SRC = os.environ.get("NET_SRC", "10.77.0.1")
+TIMEOUT = float(os.environ.get("NET_TIMEOUT", "2"))  # SLIP over a pty relay is slower
 
 
 def icmp_sum(b):
@@ -21,8 +23,8 @@ def icmp_sum(b):
 def main():
     ok = {}
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.bind(("10.77.0.1", 0))
-    s.settimeout(2.0)
+    s.bind((SRC, 0))
+    s.settimeout(TIMEOUT)
 
     def echo(data):
         s.sendto(data, DST)
@@ -40,13 +42,13 @@ def main():
     r.settimeout(2.0)
     pkt = struct.pack("!BBHHH", 8, 0, 0, 0x1234, 1) + b"pingdata"
     pkt = pkt[:2] + struct.pack("!H", icmp_sum(pkt)) + pkt[4:]
-    r.sendto(pkt, ("10.77.0.2", 0))
+    r.sendto(pkt, (DST[0], 0))
     ok["ping"] = False
     try:
         end = time.time() + 2
         while time.time() < end:
             data, addr = r.recvfrom(1500)
-            if addr[0] == "10.77.0.2" and data[20] == 0 and data[24:26] == b"\x12\x34":
+            if addr[0] == DST[0] and data[20] == 0 and data[24:26] == b"\x12\x34":
                 ok["ping"] = True
                 break
     except socket.timeout:

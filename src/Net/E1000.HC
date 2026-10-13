@@ -1,0 +1,238 @@
+//E1000: driver for the Intel 8254x network card (QEMU's default "e1000",
+//and VirtualBox's "Intel PRO/1000 MT"). Polled, no interrupts.
+//
+//Registers are reached through the card's I/O-port window (IOADDR /
+//IODATA) instead of memory-mapped I/O, so we don't depend on how the
+//OS maps device memory. TempleOS identity-maps RAM, so a buffer's
+//address is also its physical (DMA) address.
+//
+//VERIFY on a real install / QEMU: InU32/OutU32/InU16/OutU16 names, and
+//that MAlloc memory is below 4 GB or the card copes (it takes 64-bit).
+//Host builds don't compile this file's body (no hardware there).
+
+#define E1000_CTRL	0x0000
+#define E1000_STATUS	0x0008
+#define E1000_ICR	0x00C0
+#define E1000_IMC	0x00D8
+#define E1000_RCTL	0x0100
+#define E1000_TCTL	0x0400
+#define E1000_TIPG	0x0410
+#define E1000_RDBAL	0x2800
+#define E1000_RDBAH	0x2804
+#define E1000_RDLEN	0x2808
+#define E1000_RDH	0x2810
+#define E1000_RDT	0x2818
+#define E1000_TDBAL	0x3800
+#define E1000_TDBAH	0x3804
+#define E1000_TDLEN	0x3808
+#define E1000_TDH	0x3810
+#define E1000_TDT	0x3818
+#define E1000_MTA	0x5200
+#define E1000_RAL0	0x5400
+#define E1000_RAH0	0x5404
+#define E1000_NDESC	32
+#define E1000_BUF	2048
+
+class CE1000Rx
+{
+  U64 addr;
+  U16 len,csum;
+  U8 status,err;
+  U16 special;
+};
+
+class CE1000Tx
+{
+  U64 addr;
+  U16 len;
+  U8 cso,cmd,status,css;
+  U16 special;
+};
+
+class CE1000
+{
+  I64 io;		//I/O BAR base
+  CE1000Rx *rx;
+  CE1000Tx *tx;
+  U8 *rx_buf,*tx_buf;
+  I64 rx_cur,tx_cur;
+  U8 *mem;		//what we allocated (for alignment)
+};
+
+//@host-skip-begin
+//---- PCI configuration space (mechanism #1, ports 0xCF8/0xCFC)
+
+U32 PciRead32(I64 bus,I64 dev,I64 fn,I64 reg)
+{
+  OutU32(0xCF8,0x80000000|(bus<<16)|(dev<<11)|(fn<<8)|(reg&0xFC));
+  return InU32(0xCFC);
+}
+
+U0 PciWrite32(I64 bus,I64 dev,I64 fn,I64 reg,I64 v)
+{
+  OutU32(0xCF8,0x80000000|(bus<<16)|(dev<<11)|(fn<<8)|(reg&0xFC));
+  OutU32(0xCFC,v);
+}
+
+//---- registers through the I/O window
+
+U32 E1000Rd(CE1000 *e,I64 reg)
+{
+  OutU32(e->io,reg);
+  return InU32(e->io+4);
+}
+
+U0 E1000Wr(CE1000 *e,I64 reg,I64 v)
+{
+  OutU32(e->io,reg);
+  OutU32(e->io+4,v);
+}
+
+//Find an 8254x on the PCI bus: TRUE and its location if found.
+Bool E1000Find(I64 *bus,I64 *dev,I64 *fn)
+{
+  I64 b,d,f;
+  U32 id;
+  for (b=0;b<256;b++)
+    for (d=0;d<32;d++)
+      for (f=0;f<8;f++) {
+        id=PciRead32(b,d,f,0);
+        if ((id&0xFFFF)!=0x8086)
+          continue;
+        switch (id>>16) {
+          case 0x100E:	//82540EM (QEMU e1000)
+          case 0x100F:	//82545EM
+          case 0x1004:	//82543GC (VirtualBox)
+          case 0x10D3:	//82574L (QEMU e1000e) - VERIFY: e1000e may need more
+            *bus=b;
+            *dev=d;
+            *fn=f;
+            return TRUE;
+        }
+      }
+  return FALSE;
+}
+
+Bool E1000Tx(CE1000 *e,U8 *frame,I64 len)
+{
+  CE1000Tx *t=&e->tx[e->tx_cur];
+  I64 spin=0;
+  if (len>E1000_BUF)
+    return FALSE;
+  while (t->cmd && !(t->status&1)) {	//still in flight: wait for DD
+    if (++spin>1000000)
+      return FALSE;
+  }
+  MemCpy(e->tx_buf+e->tx_cur*E1000_BUF,frame,len);
+  if (len<60) {			//minimum ethernet frame
+    MemSet(e->tx_buf+e->tx_cur*E1000_BUF+len,0,60-len);
+    len=60;
+  }
+  t->addr=e->tx_buf+e->tx_cur*E1000_BUF;
+  t->len=len;
+  t->status=0;
+  t->cmd=0x0B;			//EOP | IFCS | RS
+  e->tx_cur=(e->tx_cur+1)%E1000_NDESC;
+  E1000Wr(e,E1000_TDT,e->tx_cur);
+  return TRUE;
+}
+
+I64 E1000Rx(CE1000 *e,U8 *buf,I64 cap)
+{
+  CE1000Rx *r=&e->rx[e->rx_cur];
+  I64 n;
+  if (!(r->status&1))		//DD: descriptor done
+    return -1;
+  n=r->len;
+  if (n>cap)
+    n=cap;
+  if (r->status&2)		//EOP: whole frame in one buffer
+    MemCpy(buf,e->rx_buf+e->rx_cur*E1000_BUF,n);
+  else
+    n=0;			//frame bigger than a buffer: drop
+  r->status=0;
+  E1000Wr(e,E1000_RDT,e->rx_cur);
+  e->rx_cur=(e->rx_cur+1)%E1000_NDESC;
+  if (!n)
+    return E1000Rx(e,buf,cap);
+  return n;
+}
+
+//Find and start the card. NULL if there isn't one.
+CRosNetIf *E1000Open()
+{
+  I64 bus,dev,fn,i,bar,addr;
+  U32 v;
+  U8 *p;
+  CE1000 *e;
+  CRosNetIf *nif;
+  if (!E1000Find(&bus,&dev,&fn))
+    return NULL;
+  e=CAlloc(sizeof(CE1000));
+  for (i=0;i<6 && !e->io;i++) {	//the I/O BAR
+    bar=PciRead32(bus,dev,fn,0x10+4*i);
+    if (bar&1)
+      e->io=bar&0xFFFC;
+  }
+  if (!e->io) {
+    Free(e);
+    return NULL;
+  }
+  v=PciRead32(bus,dev,fn,0x04);
+  PciWrite32(bus,dev,fn,0x04,v|0x05);	//I/O space + bus master
+  E1000Wr(e,E1000_CTRL,E1000Rd(e,E1000_CTRL)|(1<<26));	//reset
+  Sleep(10);
+  while (E1000Rd(e,E1000_CTRL)&(1<<26))
+    Yield();
+  E1000Wr(e,E1000_IMC,0xFFFFFFFF);	//no interrupts: we poll
+  E1000Rd(e,E1000_ICR);
+  v=E1000Rd(e,E1000_CTRL);
+  v=(v|(1<<6)|(1<<5))&~((1<<3)|(1<<7));	//SLU | ASDE, not LRST / ILOS
+  E1000Wr(e,E1000_CTRL,v&0x7FFFFFFF);	//not PHY_RST
+  for (i=0;i<128;i++)
+    E1000Wr(e,E1000_MTA+4*i,0);
+  //memory: descriptors need 16-byte alignment (we give 128)
+  e->mem=CAlloc(2*E1000_NDESC*16+2*E1000_NDESC*E1000_BUF+256);
+  addr=e->mem;
+  p=e->mem+(128-(addr&127));
+  e->rx=p;
+  e->tx=p+E1000_NDESC*16;
+  e->rx_buf=p+2*E1000_NDESC*16;
+  e->tx_buf=e->rx_buf+E1000_NDESC*E1000_BUF;
+  for (i=0;i<E1000_NDESC;i++)
+    e->rx[i].addr=e->rx_buf+i*E1000_BUF;
+  addr=e->rx;
+  E1000Wr(e,E1000_RDBAL,addr&0xFFFFFFFF);
+  E1000Wr(e,E1000_RDBAH,addr>>32);
+  E1000Wr(e,E1000_RDLEN,E1000_NDESC*16);
+  E1000Wr(e,E1000_RDH,0);
+  E1000Wr(e,E1000_RDT,E1000_NDESC-1);
+  //EN | MPE (all multicast: DDS) | BAM (broadcast) | 2048 buffers | SECRC
+  E1000Wr(e,E1000_RCTL,(1<<1)|(1<<4)|(1<<15)|(1<<26));
+  addr=e->tx;
+  E1000Wr(e,E1000_TDBAL,addr&0xFFFFFFFF);
+  E1000Wr(e,E1000_TDBAH,addr>>32);
+  E1000Wr(e,E1000_TDLEN,E1000_NDESC*16);
+  E1000Wr(e,E1000_TDH,0);
+  E1000Wr(e,E1000_TDT,0);
+  E1000Wr(e,E1000_TIPG,0x0060200A);
+  E1000Wr(e,E1000_TCTL,(1<<1)|(1<<3)|(0x0F<<4)|(0x40<<12));	//EN | PSP | CT | COLD
+  nif=CAlloc(sizeof(CRosNetIf));
+  v=E1000Rd(e,E1000_RAL0);
+  nif->mac[0]=v&255;
+  nif->mac[1]=(v>>8)&255;
+  nif->mac[2]=(v>>16)&255;
+  nif->mac[3]=(v>>24)&255;
+  v=E1000Rd(e,E1000_RAH0);
+  nif->mac[4]=v&255;
+  nif->mac[5]=(v>>8)&255;
+  nif->ethernet=TRUE;
+  nif->mtu=1500;
+  nif->tx=&E1000Tx;
+  nif->rx=&E1000Rx;
+  nif->drv=e;
+  Print("e1000: %02X:%02X:%02X:%02X:%02X:%02X, link %d\n",nif->mac[0],nif->mac[1],
+	nif->mac[2],nif->mac[3],nif->mac[4],nif->mac[5],(E1000Rd(e,E1000_STATUS)>>1)&1);
+  return nif;
+}
+//@host-skip-end

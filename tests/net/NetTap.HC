@@ -5,18 +5,11 @@
 Cd(__DIR__);;
 #include "../../Load.HC"
 
-I64 NetTapEcho()
+I64 NetEcho(CRosNetIf *nif)
 {
-  CRosNetIf *nif=RosTapOpen("rhc0",RosIpParse("10.77.0.1"));
   CRosUdp *u;
   U8 *buf=MAlloc(70000);
   I64 n,ip,port,end,echoed=0;
-  if (!nif) {
-    Print("RESULT holyc: can't open TAP (need root)\n");
-    return 1;
-  }
-  RosNetUp(nif);
-  RosNetConfig(RosIpParse("10.77.0.2"),RosIpParse("255.255.255.0"),0);
   u=RosUdpOpen(7777,FALSE);
   Print("READY\n");
 //@host: fflush(stdout);
@@ -37,4 +30,33 @@ I64 NetTapEcho()
   RosUdpClose(u);
   Free(buf);
   return 0;
+}
+
+I64 NetTapEcho()
+{
+  CRosNetIf *nif=RosTapOpen("rhc0",RosIpParse("10.77.0.1"));
+  if (!nif) {
+    Print("RESULT holyc: can't open TAP (need root)\n");
+    return 1;
+  }
+  RosNetUp(nif);
+  RosNetConfig(RosIpParse("10.77.0.2"),RosIpParse("255.255.255.0"),0);
+  return NetEcho(nif);
+}
+
+//The same over SLIP: the pty path is in the SLIP_TTY environment variable.
+I64 NetSlipEcho()
+{
+  CRosNetIf *nif;
+  I64 fd=-1;
+//@host: struct termios t; fd=open(getenv("SLIP_TTY"),O_RDWR|O_NONBLOCK|O_NOCTTY);
+//@host: if (fd>=0) { tcgetattr(fd,&t); cfmakeraw(&t); tcsetattr(fd,TCSANOW,&t); }
+  if (fd<0) {
+    Print("RESULT holyc: can't open the pty\n");
+    return 1;
+  }
+  nif=SlipOpenFd(fd);
+  RosNetUp(nif);
+  RosNetConfig(RosIpParse("10.79.0.2"),RosIpParse("255.255.255.0"),0);
+  return NetEcho(nif);
 }

@@ -54,9 +54,46 @@ card driver, a serial line, or a Linux TAP device in tests.
 
 Both need root for the TAP device. CI runs them with sudo.
 
+## Links
+- **e1000** (`src/Net/E1000.HC`): QEMU's default card and VirtualBox's "PRO/1000 MT". It's polled
+  and uses the card's I/O-port register window. It's written from the Intel 8254x manual but
+  **not run yet** (no hardware or emulator here). Its `VERIFY` notes list what to check first.
+- **SLIP** (`src/Net/Slip.HC`): IP over a serial port (COM1 at 115200), for machines without a
+  supported card. Tested end to end: `tools/nettest/run.sh slip` runs our stack over a pty, with
+  a Linux TUN interface on the other end.
+- **TAP** (`src/Net/Tap.HC`): Linux only, for tests.
+
+## Running it on TempleOS (QEMU)
+On Linux, give QEMU a TAP interface:
+```
+sudo ip tuntap add dev tap0 mode tap user $USER
+sudo ip addr add 10.0.3.1/24 dev tap0 && sudo ip link set tap0 up
+qemu-system-x86_64 -m 2048 -smp 2 -enable-kvm -drive file=TempleOS.qcow2 \
+  -netdev tap,id=n0,ifname=tap0,script=no,downscript=no -device e1000,netdev=n0
+```
+In TempleOS:
+```
+#include "~/ROS2-Holy-C/Load.HC"
+RosNetwork("10.0.3.2","255.255.255.0","10.0.3.1",0);   //e1000 + DDS on domain 0
+#include "~/ROS2-Holy-C/examples/TalkerListener.HC"
+TalkerListener;
+```
+Then on Linux, `ros2 topic echo /chatter` should show TempleOS talking (domain 0, any RMW).
+Multicast discovery works over the TAP interface. Linux is also added as a unicast peer.
+
+Over a serial line instead: start QEMU with `-serial pty`. Then on Linux run
+`sudo slattach -p slip -s 115200 /dev/pts/N` and
+`sudo ip addr add 10.0.4.1 peer 10.0.4.2 dev sl0 && sudo ip link set sl0 up`
+(or use `tools/nettest/slip_relay.py`, which makes a TUN interface). In TempleOS:
+`RosNetworkSlip(0x3F8,"10.0.4.2","10.0.4.1",0);`
+
+Getting the files into TempleOS isn't covered here yet. You need a disk image that TempleOS
+can read, and long file names matter (`TestGolden.HC` etc.).
+
 ## Not done yet
 - `rmw_fastrtps`-style services (Fast DDS keeps the request id in inline QoS instead of a header).
   Topics work with every vendor.
 - Jazzy type hashes in endpoint user data. These aren't needed for DDS matching, but
   `ros2 topic info -v` shows them.
-- A network card driver for TempleOS (next: e1000 for QEMU) and a serial (SLIP) link.
+- Running the e1000 driver on a real TempleOS / QEMU (it compiles in our lint, nothing more).
+- DHCP (addresses are static for now).

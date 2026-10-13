@@ -17,7 +17,7 @@ if [ "$1" = "tap" ]; then
   python3 tools/hctest/hc2c.py run tests/dds/Interop.HC --main DdsInteropTap > "$out" 2>&1 &
   holyc=$!
   i=0
-  while ! grep -q READY "$out" && [ $i -lt 600 ]; do sleep 0.1; i=$((i+1)); done
+  while ! grep -q READY "$out" && [ $i -lt 600 ] && kill -0 $holyc 2>/dev/null; do sleep 0.1; i=$((i+1)); done
   PEER_IFACE=10.78.0.1 PEER_PEER=10.78.0.2 PEER_MCAST=true $PY tools/ddstest/peer.py 25; cyc=$?
   wait $holyc; h=$?
   grep RESULT "$out"; rm -f "$out"

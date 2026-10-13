@@ -3,3 +3,5 @@
 Cd(__DIR__);;
 #include "Net.HC"
 #include "Tap.HC"
+#include "E1000.HC"
+#include "Slip.HC"
