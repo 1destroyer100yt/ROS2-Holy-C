@@ -30,6 +30,7 @@ TSAN_OPTIONS=halt_on_error=1 "$tmp/thr"
 echo "== IP stack against the Linux kernel over TAP and over SLIP (skipped without root)"
 tools/nettest/run.sh
 tools/nettest/run.sh slip
+tools/nettest/run.sh dhcp
 echo "== DDS interop with Cyclone DDS (skipped if cyclonedds isn't installed)"
 tools/ddstest/run.sh
 echo "== DDS interop over our own IP stack + multicast (TAP; skipped without root)"
@@ -38,6 +39,10 @@ echo "== rosbag2 MCAP interop with rosbags + mcap (skipped if they aren't instal
 tools/bagtest/run.sh
 echo "== against a real ROS 2 Jazzy, Fast DDS + Cyclone DDS (skipped without ros2; ROS_SETUP=...)"
 tools/ros2test/run.sh
+echo "== disk image for TempleOS, read back with pyfatfs (skipped without it)"
+if python3 -c "import pyfatfs" 2>/dev/null; then
+  python3 tools/mkdisk/mkdisk.py "$tmp/disk.img" && python3 tools/mkdisk/verify.py "$tmp/disk.img" .
+else echo "mkdisk: pyfatfs not installed, skipping check"; fi
 echo "== F32 vs C float"
 python3 tools/hctest/hc2c.py c src/Load.HC -o "$tmp/lib.c"
 gcc -O2 -fwrapv -w -fms-extensions -include "$tmp/lib.c" tools/hctest/f32_check.c -o "$tmp/f32" -lm

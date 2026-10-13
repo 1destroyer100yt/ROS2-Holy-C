@@ -474,6 +474,8 @@ Bool NetForUs(I64 dst)
   CRosNetIf *nif=ros_netif;
   if (dst==nif->ip || NetIsBcast(dst))
     return TRUE;
+  if (!nif->ip && !NetIsMcast(dst))
+    return TRUE;	//no address yet (DHCP): servers may answer to the offered one
   if (NetIsMcast(dst))
     for (i=0;i<ros_mcast_n;i++)
       if (ros_mcast[i]==dst || dst==0xE0000001)

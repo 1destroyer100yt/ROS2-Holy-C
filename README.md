@@ -12,6 +12,7 @@ ROS 2, written from the ground up in pure HolyC for TempleOS.
   tested against a real ROS 2 Jazzy with both Fast DDS and Cyclone DDS (`tools/ros2test`)
 - Coordinate frames (tf2): [docs/TF.md](docs/TF.md)
 - RvizLite, a 2D rviz: [docs/RVIZ.md](docs/RVIZ.md)
+- Getting it into TempleOS (disk image, QEMU, network): [docs/TEMPLEOS.md](docs/TEMPLEOS.md)
 
 ## Test it (no TempleOS needed)
 ```

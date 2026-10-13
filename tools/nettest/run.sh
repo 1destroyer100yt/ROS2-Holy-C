@@ -2,10 +2,21 @@
 # Test the HolyC IP stack (src/Net) against the Linux kernel.
 #   tools/nettest/run.sh        over a TAP device (Ethernet + ARP)
 #   tools/nettest/run.sh slip   over SLIP on a pty, Linux side a TUN device
+#   tools/nettest/run.sh dhcp   our DHCP client against Scapy's DHCP server (TAP)
 # Needs root (or CAP_NET_ADMIN); skipped otherwise.
 cd "$(dirname "$0")/../.."
 if [ ! -w /dev/net/tun ] || [ "$(id -u)" != 0 ]; then echo "nettest: needs root and /dev/net/tun, skipping"; exit 0; fi
 out=$(mktemp)
+if [ "$1" = "dhcp" ]; then
+  PY=${PYTHON:-python3}
+  if ! $PY -c "import scapy" 2>/dev/null; then echo "nettest dhcp: scapy not installed for $PY, skipping"; exit 0; fi
+  python3 tools/hctest/hc2c.py run tests/net/NetTap.HC --main NetTapDhcp > "$out" 2>&1 & holyc=$!
+  $PY tools/nettest/dhcp_server.py rhc2; server=$?
+  wait $holyc; h=$?
+  grep RESULT "$out"; rm -f "$out"
+  [ $server -eq 0 ] && [ $h -eq 0 ] && echo "nettest dhcp: OK" || { echo "nettest dhcp: FAIL"; exit 1; }
+  exit 0
+fi
 if [ "$1" = "slip" ]; then
   rel=$(mktemp)
   python3 tools/nettest/slip_relay.py > "$rel" 2>&1 & relay=$!

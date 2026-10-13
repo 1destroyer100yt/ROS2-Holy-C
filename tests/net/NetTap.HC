@@ -44,6 +44,37 @@ I64 NetTapEcho()
   return NetEcho(nif);
 }
 
+//DHCP from a server on the Linux side (tools/nettest/run.sh dhcp),
+//then a datagram to it from the address we got.
+I64 NetTapDhcp()
+{
+  CRosNetIf *nif=RosTapOpen("rhc2",RosIpParse("10.81.0.1"));
+  CRosUdp *u;
+  U8 *s;
+  Bool ok;
+  if (!nif) {
+    Print("RESULT holyc: can't open TAP (need root)\n");
+    return 1;
+  }
+  RosNetUp(nif);
+  Print("READY\n");
+//@host: fflush(stdout);
+  ok=RosNetDhcp(20*ROS_NS_PER_SEC);
+  Print("RESULT holyc: dhcp=%d ip=%s",ok,RosIpStr(ros_netif->ip));
+  Print(" mask=%s",RosIpStr(ros_netif->mask));
+  Print(" gw=%s lease=%d\n",RosIpStr(ros_netif->gw),ros_dhcp_lease_s);
+  if (!ok)
+    return 1;
+  u=RosUdpOpen(0,FALSE);
+  s=MStrPrint("hello from %s",RosIpStr(ros_netif->ip));
+  RosUdpSend(u,RosIpParse("10.81.0.1"),9999,s,StrLen(s));
+  Free(s);
+  RosSleepNs(200*ROS_NS_PER_MS);
+  RosNetPoll(64);
+  RosUdpClose(u);
+  return 0;
+}
+
 //The same over SLIP: the pty path is in the SLIP_TTY environment variable.
 I64 NetSlipEcho()
 {

@@ -369,6 +369,9 @@ What we do instead is **better**, not just a workaround:
   - [x] Full stack over our IP stack + multicast against Cyclone DDS (TAP)
   - [x] SLIP serial link (tested over a pty against Linux) - this is also Phase 6, in pure HolyC
   - [~] e1000 driver written (VERIFY on QEMU), `RosNetwork(...)` / `RosNetworkSlip(...)` one-liners
+  - [x] DHCP client (`RosNetDhcp`, `RosNetworkDhcp(domain)`), tested against Scapy's DHCP server over TAP
+  - [x] Getting files in: `tools/mkdisk` makes a FAT32 disk image of the repo (checked with pyfatfs);
+        `tools/templeos/vm.py` drives TempleOS in QEMU headless (docs/TEMPLEOS.md)
 - [x] Phase 8 tf/rviz-lite/rosbag
   - [x] tf2: transforms, buffer with interpolation, lookups across the tree, /tf + /tf_static,
         tf2_echo (`src/Tf/`, docs/TF.md)

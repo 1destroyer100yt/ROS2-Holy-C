@@ -6,11 +6,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install Cyclone DDS, rosbags and mcap (for the interop tests)
-        run: python3 -m pip install --break-system-packages cyclonedds rosbags mcap || python3 -m pip install cyclonedds rosbags mcap
+        run: python3 -m pip install --break-system-packages cyclonedds rosbags mcap scapy pyfatfs 'setuptools<70' || python3 -m pip install cyclonedds rosbags mcap scapy pyfatfs 'setuptools<70'
       - name: Host checks (cpp2hc, lint, HolyC unit tests, DDS interop, F32)
         run: tools/check.sh
       - name: IP stack against the Linux kernel (TAP and SLIP, needs root)
-        run: sudo -E env "PATH=$PATH" tools/nettest/run.sh && sudo -E env "PATH=$PATH" tools/nettest/run.sh slip
+        run: |
+          sudo -E env "PATH=$PATH" tools/nettest/run.sh
+          sudo -E env "PATH=$PATH" tools/nettest/run.sh slip
+          sudo -E env "PATH=$PATH" tools/nettest/run.sh dhcp
       - name: DDS over our own IP stack with multicast (TAP, needs root)
         run: sudo -E env "PATH=$PATH" tools/ddstest/run.sh tap
   ros2:

@@ -114,4 +114,3 @@ can read, and long file names matter (`TestGolden.HC` etc.).
 
 ## Not done yet
 - Running the e1000 driver on a real TempleOS / QEMU (it compiles in our lint, nothing more).
-- DHCP (addresses are static for now).
