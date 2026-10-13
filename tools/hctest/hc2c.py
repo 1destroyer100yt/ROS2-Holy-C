@@ -254,7 +254,7 @@ def build(entry, main, out_c=None, extra_c=()):
            "-Wno-unused-function", "-Wno-unused-variable", "-Wno-unused-but-set-variable",
            "-Wno-parentheses", "-Wno-discarded-qualifiers",
            "-fsanitize=address,undefined", "-fno-sanitize-recover=undefined",
-           "-o", exe, out_c] + list(extra_c) + ["-lm"]
+           "-o", exe, out_c] + list(extra_c) + ["-lm", "-lpthread"]
     r = subprocess.run(cmd)
     if r.returncode != 0:
         return None

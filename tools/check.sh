@@ -23,7 +23,7 @@ python3 tools/hctest/hc2c.py run examples/AddTwoInts.HC --main AddTwoIntsHost --
 python3 tools/hctest/hc2c.py run examples/ParamDemo.HC --main ParamDemoHost --leaks > /dev/null
 python3 tools/hctest/hc2c.py run examples/TurtleSquare.HC --main TurtleSquareHost --leaks > /dev/null
 python3 tools/hctest/hc2c.py run examples/PluginNode.HC --main PluginNodeHost --leaks > /dev/null
-echo "== threads (publishers + executor on different threads, ThreadSanitizer)"
+echo "== threads (publishers + executors, single and multi-threaded, ThreadSanitizer)"
 python3 tools/hctest/hc2c.py c Load.HC -o "$tmp/libg.c"
 gcc -O1 -g -fsanitize=thread -w -fwrapv -fms-extensions -include "$tmp/libg.c" tools/hctest/threads_check.c -o "$tmp/thr" -lpthread -lm
 TSAN_OPTIONS=halt_on_error=1 "$tmp/thr"

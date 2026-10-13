@@ -4,9 +4,14 @@
 //
 //  CRosExec *e=RosExecNew();
 //  RosExecAdd(e,node);
-//  RosExecSpin(e);			//until RosShutdown() / e->stop
+//  RosExecSpin(e);			//until RosShutdown() / RosExecStop(e)
 //
 //Or just RosSpin(node) for one node.
+//
+//Multi-threaded: RosExecSpinMT(e,4) runs callbacks on 4 tasks (one per
+//core). Each node is a mutually exclusive callback group, like
+//rclcpp's default: one callback of a node runs at a time, different
+//nodes run in parallel. Put work that should overlap in different nodes.
 
 CRosExec *RosExecNew()
 {
@@ -45,35 +50,40 @@ U0 RosExecRemove(CRosExec *e,CRosNode *n)
     n->exec=NULL;
 }
 
+//Run what's ready in one node, once each. Returns callbacks run.
+I64 RosExecSpinNode(CRosNode *n)
+{
+  I64 j,k,n_ready,work=0;
+  CRosSub *s;
+  for (j=0;j<n->timers->len;j++)
+    if (RosTimerExec(RosVecGetI64(n->timers,j)))
+      work++;
+  for (j=0;j<n->subs->len;j++) {
+    s=RosVecGetI64(n->subs,j);
+    n_ready=RosSubPending(s);
+    for (k=0;k<n_ready && j<n->subs->len;k++)
+      if (RosSubExecOne(s))
+        work++;
+  }
+  for (j=0;j<n->srvs->len;j++)
+    while (j<n->srvs->len && RosServiceExecOne(RosVecGetI64(n->srvs,j)))
+      work++;
+  for (j=0;j<n->clis->len;j++)
+    while (j<n->clis->len && RosClientExecOne(RosVecGetI64(n->clis,j)))
+      work++;
+  return work;
+}
+
 //Run everything that's ready right now, once each (messages that
 //arrive during this call wait for the next one). Returns how many
 //callbacks ran.
 I64 RosExecSpinSome(CRosExec *e)
 {
-  I64 i,j,k,n_ready,work=0;
-  CRosNode *n;
-  CRosSub *s;
+  I64 i,work=0;
   if (ros_hook_spin_extra)
     (*ros_hook_spin_extra)();
-  for (i=0;i<e->nodes->len;i++) {
-    n=RosVecGetI64(e->nodes,i);
-    for (j=0;j<n->timers->len;j++)
-      if (RosTimerExec(RosVecGetI64(n->timers,j)))
-        work++;
-    for (j=0;j<n->subs->len;j++) {
-      s=RosVecGetI64(n->subs,j);
-      n_ready=RosSubPending(s);
-      for (k=0;k<n_ready && j<n->subs->len;k++)
-        if (RosSubExecOne(s))
-          work++;
-    }
-    for (j=0;j<n->srvs->len;j++)
-      while (j<n->srvs->len && RosServiceExecOne(RosVecGetI64(n->srvs,j)))
-        work++;
-    for (j=0;j<n->clis->len;j++)
-      while (j<n->clis->len && RosClientExecOne(RosVecGetI64(n->clis,j)))
-        work++;
-  }
+  for (i=0;i<e->nodes->len;i++)
+    work+=RosExecSpinNode(RosVecGetI64(e->nodes,i));
   return work;
 }
 
@@ -101,7 +111,7 @@ Bool RosExecSpinOnce(CRosExec *e,I64 timeout_ns)
     if (RosExecSpinSome(e))
       return TRUE;
     left=end-RosTimeSteadyNs();
-    if (left<=0 || !ros_ok || e->stop)
+    if (left<=0 || !ros_ok || RosAtomicGet(&e->stop))
       return FALSE;
     //messages can come from other tasks at any time: nap in small steps
     wait=RosExecNextTimer(e,left);
@@ -115,11 +125,17 @@ Bool RosExecSpinOnce(CRosExec *e,I64 timeout_ns)
   return FALSE;
 }
 
-//Spin until RosShutdown() or e->stop.
+//Make a spin of e return (from any task, or a callback).
+U0 RosExecStop(CRosExec *e)
+{
+  RosAtomicSet(&e->stop,TRUE);
+}
+
+//Spin until RosShutdown() or RosExecStop(e).
 U0 RosExecSpin(CRosExec *e)
 {
-  e->stop=FALSE;
-  while (ros_ok && !e->stop)
+  RosAtomicSet(&e->stop,FALSE);
+  while (ros_ok && !RosAtomicGet(&e->stop))
     RosExecSpinOnce(e,100*ROS_NS_PER_MS);
 }
 
@@ -127,7 +143,7 @@ U0 RosExecSpin(CRosExec *e)
 U0 RosExecSpinFor(CRosExec *e,I64 ns)
 {
   I64 end=RosTimeSteadyNs()+ns,left;
-  while (ros_ok && !e->stop) {
+  while (ros_ok && !RosAtomicGet(&e->stop)) {
     left=end-RosTimeSteadyNs();
     if (left<=0)
       break;
@@ -213,4 +229,74 @@ Bool RosClientWait(CRosClient *c,CRosExec *e,I64 timeout_ns)
     RosExecSpinOnce(e,10*ROS_NS_PER_MS);
   }
   return TRUE;
+}
+
+//---- multi-threaded
+
+//One pass over the nodes no other task is busy with.
+I64 RosExecSweepMT(CRosExec *e)
+{
+  I64 i,work=0;
+  CRosNode *n;
+  for (i=0;i<e->nodes->len;i++) {
+    n=RosVecGetI64(e->nodes,i);
+    if (LBts(&n->cb_lock,0))
+      continue;	//another task is in this node's callbacks
+    work+=RosExecSpinNode(n);
+    LBtr(&n->cb_lock,0);
+  }
+  return work;
+}
+
+U0 RosExecWorkLoop(CRosExec *e,Bool main)
+{
+  I64 wait;
+  while (ros_ok && !RosAtomicGet(&e->stop)) {
+    if (main && ros_hook_spin_extra)
+      (*ros_hook_spin_extra)();
+    if (!RosExecSweepMT(e)) {
+      wait=RosExecNextTimer(e,ROS_NS_PER_MS);
+      if (wait>0)
+        RosSleepNs(wait);
+      else
+        Yield();
+    }
+  }
+}
+
+U0 RosExecWorker(CRosExec *e)
+{
+  RosExecWorkLoop(e,FALSE);
+  RosLockGet(&e->lock);
+  e->workers--;
+  RosLockPut(&e->lock);
+}
+
+//Spin on this task plus threads-1 worker tasks on other cores until
+//RosShutdown() or RosExecStop(e). Waits for the workers before returning.
+//Don't add or remove nodes, or spin e some other way, meanwhile.
+U0 RosExecSpinMT(CRosExec *e,I64 threads)
+{
+  I64 i,cpu,left;
+  RosAtomicSet(&e->stop,FALSE);
+  for (i=1;i<threads;i++) {
+    RosLockGet(&e->lock);
+    e->workers++;
+    RosLockPut(&e->lock);
+    cpu=i%mp_cnt;	//VERIFY on TempleOS: worker tasks on other cores
+    if (!Spawn(&RosExecWorker,e,"RosExecWorker",cpu)) {
+      RosLockGet(&e->lock);
+      e->workers--;
+      RosLockPut(&e->lock);
+    }
+  }
+  RosExecWorkLoop(e,TRUE);
+  left=1;
+  while (left) {
+    RosLockGet(&e->lock);
+    left=e->workers;
+    RosLockPut(&e->lock);
+    if (left)
+      RosSleepNs(ROS_NS_PER_MS);
+  }
 }

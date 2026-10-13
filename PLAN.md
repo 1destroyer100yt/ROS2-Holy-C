@@ -334,7 +334,8 @@ What we do instead is **better**, not just a workaround:
   - [x] Examples: TalkerListener (two TempleOS tasks), AddTwoInts, ParamDemo
   - [x] Actions: server/client over rcl_action's services and topics, cancel policy, result
         expiry, `ros2 action` CLI, turtlesim rotate_absolute; Cyclone DDS completes a goal on us
-  - [ ] Multi-threaded executor (worker tasks on other cores)
+  - [x] Multi-threaded executor: `RosExecSpinMT(e,n)`, worker tasks on other cores, one callback
+        per node at a time (TSan stress test); VERIFY Spawn on other cores on real TempleOS
   - [ ] Creating/destroying entities from a task other than the one spinning that node is not safe yet
 - [x] Phase 4 tools (`src/Tools/`, docs/TOOLS.md)
   - [x] node list/info, topic list/info/echo/pub/hz, service list/call, param list/get/set/dump

@@ -29,3 +29,21 @@ I64 RosRefAdd(I64 *ref,I64 v)
   RosLockPut(&ros_ref_lock);
   return r;
 }
+
+//A flag one task sets and others poll (x86 loads and stores of an
+//aligned I64 are atomic; the host build needs it spelled out).
+I64 RosAtomicGet(I64 *p)
+{
+//@host: return __atomic_load_n(p,__ATOMIC_ACQUIRE);
+//@host-skip-begin
+  return *p;
+//@host-skip-end
+}
+
+U0 RosAtomicSet(I64 *p,I64 v)
+{
+//@host: __atomic_store_n(p,v,__ATOMIC_RELEASE); return;
+//@host-skip-begin
+  *p=v;
+//@host-skip-end
+}

@@ -103,6 +103,17 @@ RosSpin(n);                  //one node, its own executor
 ```
 In TempleOS, give each part of the robot its own task:
 `Spawn(&MyTask,NULL,"name");`, where `MyTask` makes its node and calls `RosSpin`.
+
+Or let one executor use several cores:
+```
+RosExecSpinMT(e,4);          //this task + 3 worker tasks on other cores
+RosExecStop(e);              //from a callback or another task: all of them return
+```
+Each node is a mutually exclusive callback group (rclcpp's default): one callback of a node
+runs at a time, and different nodes run in parallel. Split work that should overlap into
+separate nodes. Don't add nodes to `e` or spin it any other way while it runs.
+`tools/hctest/threads_check.c` floods four nodes from three publisher threads under
+ThreadSanitizer to check this.
 `examples/TalkerListener.HC` does exactly this.
 
 **Rule for now:** create and delete a node's publishers, subscriptions, timers, services and

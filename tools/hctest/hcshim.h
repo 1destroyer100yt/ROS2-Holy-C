@@ -17,6 +17,8 @@
 #include <arpa/inet.h>
 #include <termios.h>
 #include <sys/stat.h>
+#include <pthread.h>
+#include <sched.h>
 
 typedef void U0;
 typedef int8_t I8;
@@ -74,7 +76,27 @@ static F64 Pow(F64 a, F64 b) { return pow(a, b); }
 static F64 Sin(F64 d) { return sin(d); }
 static F64 Cos(F64 d) { return cos(d); }
 static F64 Arg(F64 x, F64 y) { return atan2(y, x); }
-static U0 Yield(void) {}
+static U0 Yield(void) { sched_yield(); }
+/* TempleOS tasks on other cores -> detached pthreads */
+typedef struct CTask CTask;
+#define mp_cnt ((I64)sysconf(_SC_NPROCESSORS_ONLN))
+struct HcSpawnArg { void (*fp)(U8 *); U8 *data; };
+static void *HcSpawnRun(void *p)
+{
+  struct HcSpawnArg a = *(struct HcSpawnArg *)p;
+  free(p);
+  a.fp(a.data);
+  return NULL;
+}
+static CTask *Spawn(void (*fp)(U8 *), U8 *data, const U8 *name, I64 cpu)
+{
+  pthread_t t;
+  struct HcSpawnArg *a = malloc(sizeof *a);
+  a->fp = fp; a->data = data;
+  if (pthread_create(&t, NULL, HcSpawnRun, a)) { free(a); return NULL; }
+  pthread_detach(t);
+  return (CTask *)a;  /* only compared with NULL */
+}
 /* TempleOS atomic bit ops: return the old bit */
 static Bool LBts(I64 *p, I64 bit) { return (__atomic_fetch_or(p, 1LL << bit, __ATOMIC_ACQUIRE) >> bit) & 1; }
 static Bool LBtr(I64 *p, I64 bit) { return (__atomic_fetch_and(p, ~(1LL << bit), __ATOMIC_RELEASE) >> bit) & 1; }

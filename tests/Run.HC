@@ -21,6 +21,7 @@ Cd(__DIR__);;
 #include "TestHashGolden.HC"
 #include "TestHash.HC"
 #include "TestAction.HC"
+#include "TestExecMT.HC"
 
 I64 RosTestsRun()
 {
@@ -38,5 +39,6 @@ I64 RosTestsRun()
   TestBag();
   TestHash();
   TestAction();
+  TestExecMT();
   return RosTestSummary();
 }

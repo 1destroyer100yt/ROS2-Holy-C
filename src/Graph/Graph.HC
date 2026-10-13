@@ -68,7 +68,8 @@ Bool RosQoSCompatible(CRosQoS *p,CRosQoS *s)
 class CRosExec
 {
   CRosVec *nodes;	//CRosNode *
-  Bool stop;
+  I64 stop;		//set with RosExecStop to end a spin
+  I64 lock,workers;	//multi-threaded: worker tasks still running
 };
 
 class CRosNode
@@ -89,6 +90,7 @@ class CRosNode
   U8 *on_del_user;
   I64 log_level;
   Bool dead;
+  I64 cb_lock;		//multi-threaded executor: one callback of a node at a time
 };
 
 class CRosTopic
