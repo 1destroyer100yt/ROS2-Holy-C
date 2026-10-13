@@ -17,6 +17,8 @@ Cd(__DIR__);;
 Cd(__DIR__);;
 #include "src/Viz/Load.HC"
 Cd(__DIR__);;
+#include "src/Hw/Load.HC"
+Cd(__DIR__);;
 #include "src/Net/Load.HC"
 Cd(__DIR__);;
 #include "src/Dds/Load.HC"

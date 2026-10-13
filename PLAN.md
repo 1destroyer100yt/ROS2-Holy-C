@@ -385,4 +385,8 @@ What we do instead is **better**, not just a workaround:
   - [x] RvizLite: map, scan, path, poses, odometry, markers, tf, grid, pan/zoom, rendered into a
         16-color canvas that's tested pixel by pixel on Linux (`src/Viz/`, docs/RVIZ.md);
         VERIFY the window on real TempleOS
-  - [ ] Hardware drivers (serial motor controllers, joysticks)
+  - [x] Hardware: serial ports (16550 UART / host fd), RoboClaw packet serial, DiffDrive base
+        (cmd_vel -> wheels, encoders -> /odom + tf; or simulated wheels). Tested against a
+        RoboClaw simulator that the official Basicmicro library is checked against, over a pty and
+        over QEMU's emulated 16550 (tools/hwtest, docs/HARDWARE.md)
+  - [ ] Joysticks (no USB in TempleOS; the keyboard teleop in turtlesim covers driving)

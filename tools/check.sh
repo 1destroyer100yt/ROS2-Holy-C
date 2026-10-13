@@ -31,6 +31,9 @@ echo "== IP stack against the Linux kernel over TAP and over SLIP (skipped witho
 tools/nettest/run.sh
 tools/nettest/run.sh slip
 tools/nettest/run.sh dhcp
+echo "== RoboClaw + DiffDrive against a simulator checked with the official library"
+tools/hwtest/run.sh
+tools/hwtest/run.sh com
 echo "== e1000 driver on QEMU's emulated card (skipped without root/qemu)"
 tools/e1000test/run.sh
 echo "== DDS interop with Cyclone DDS (skipped if cyclonedds isn't installed)"

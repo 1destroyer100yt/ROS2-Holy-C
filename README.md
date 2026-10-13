@@ -13,6 +13,7 @@ ROS 2, written from the ground up in pure HolyC for TempleOS.
 - Coordinate frames (tf2): [docs/TF.md](docs/TF.md)
 - RvizLite, a 2D rviz: [docs/RVIZ.md](docs/RVIZ.md)
 - Getting it into TempleOS (disk image, QEMU, network): [docs/TEMPLEOS.md](docs/TEMPLEOS.md)
+- Hardware (serial ports, RoboClaw motor controllers, a diff-drive base): [docs/HARDWARE.md](docs/HARDWARE.md)
 
 ## Test it (no TempleOS needed)
 ```

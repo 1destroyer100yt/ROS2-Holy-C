@@ -84,6 +84,8 @@ static F64 Arg(F64 x, F64 y) { return atan2(y, x); }
 static U0 Yield(void) { sched_yield(); }
 /* x86 port I/O (the e1000 test runs as root in a Linux guest with iopl(3)) */
 static U32 InU32(I64 port) { U32 v; __asm__ volatile("inl %w1,%0" : "=a"(v) : "Nd"((unsigned short)port)); return v; }
+static U8 InU8(I64 port) { U8 v; __asm__ volatile("inb %w1,%0" : "=a"(v) : "Nd"((unsigned short)port)); return v; }
+static U0 OutU8(I64 port, I64 v) { __asm__ volatile("outb %0,%w1" : : "a"((U8)v), "Nd"((unsigned short)port)); }
 static U0 OutU32(I64 port, I64 v) { __asm__ volatile("outl %0,%w1" : : "a"((U32)v), "Nd"((unsigned short)port)); }
 /* TempleOS tasks on other cores -> detached pthreads */
 typedef struct CTask CTask;

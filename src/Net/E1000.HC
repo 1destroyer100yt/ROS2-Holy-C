@@ -66,7 +66,7 @@ U64 E1000Phys(U8 *p)
 {
   U64 a=p;
 //@host: { int fd=open("/proc/self/pagemap",O_RDONLY); uint64_t e=0; long ps=getpagesize();
-//@host:   if (fd>=0) { pread(fd,&e,8,(off_t)((uintptr_t)p/ps)*8); close(fd); }
+//@host:   if (fd>=0) { if (pread(fd,&e,8,(off_t)((uintptr_t)p/ps)*8)!=8) e=0; close(fd); }
 //@host:   a=((e&((1ULL<<55)-1))*ps)|((uintptr_t)p%ps); }
   return a;
 }

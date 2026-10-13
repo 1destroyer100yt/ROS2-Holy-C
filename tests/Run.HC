@@ -23,6 +23,7 @@ Cd(__DIR__);;
 #include "TestAction.HC"
 #include "TestExecMT.HC"
 #include "TestRviz.HC"
+#include "TestHw.HC"
 
 I64 RosTestsRun()
 {
@@ -42,5 +43,6 @@ I64 RosTestsRun()
   TestAction();
   TestExecMT();
   TestRviz();
+  TestHw();
   return RosTestSummary();
 }
