@@ -91,3 +91,31 @@ I64 NetSlipEcho()
   RosNetConfig(RosIpParse("10.79.0.2"),RosIpParse("255.255.255.0"),0);
   return NetEcho(nif);
 }
+
+//The e1000 driver on QEMU's emulated card (tools/e1000test/run.sh).
+//Runs as /init of a Linux guest: the driver talks to the card through
+//I/O ports itself (iopl), Linux only provides memory. DHCP first, then
+//the same echo server as over TAP.
+I64 E1000Guest()
+{
+  CRosNetIf *nif;
+  I64 r;
+//@host: mkdir("/proc",0555); mount("proc","/proc","proc",0,NULL);
+//@host: if (iopl(3)) { Print("RESULT holyc: iopl failed\n"); fflush(stdout); }
+  nif=E1000Open();
+  if (!nif) {
+    Print("RESULT holyc: no e1000 found\n");
+    r=1;
+  } else {
+    RosNetUp(nif);
+    if (!RosNetDhcp(30*ROS_NS_PER_SEC)) {
+      Print("RESULT holyc: no DHCP answer\n");
+      r=1;
+    } else {
+      Print("DHCP %s\n",RosIpStr(ros_netif->ip));
+      r=NetEcho(nif);
+    }
+  }
+//@host: fflush(stdout); sync(); reboot(RB_POWER_OFF);
+  return r;
+}

@@ -14,6 +14,10 @@ jobs:
           sudo -E env "PATH=$PATH" tools/nettest/run.sh
           sudo -E env "PATH=$PATH" tools/nettest/run.sh slip
           sudo -E env "PATH=$PATH" tools/nettest/run.sh dhcp
+      - name: e1000 driver on QEMU's emulated card (Linux guest, TAP, DHCP + echo suite)
+        run: |
+          sudo apt-get update -q && sudo apt-get install -y -q qemu-system-x86
+          sudo -E env "PATH=$PATH" tools/e1000test/run.sh
       - name: DDS over our own IP stack with multicast (TAP, needs root)
         run: sudo -E env "PATH=$PATH" tools/ddstest/run.sh tap
   ros2:

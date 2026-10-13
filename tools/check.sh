@@ -31,6 +31,8 @@ echo "== IP stack against the Linux kernel over TAP and over SLIP (skipped witho
 tools/nettest/run.sh
 tools/nettest/run.sh slip
 tools/nettest/run.sh dhcp
+echo "== e1000 driver on QEMU's emulated card (skipped without root/qemu)"
+tools/e1000test/run.sh
 echo "== DDS interop with Cyclone DDS (skipped if cyclonedds isn't installed)"
 tools/ddstest/run.sh
 echo "== DDS interop over our own IP stack + multicast (TAP; skipped without root)"

@@ -1,14 +1,15 @@
 //E1000: driver for the Intel 8254x network card (QEMU's default "e1000",
 //and VirtualBox's "Intel PRO/1000 MT"). Polled, no interrupts.
 //
-//Registers are reached through the card's I/O-port window (IOADDR /
-//IODATA) instead of memory-mapped I/O, so we don't depend on how the
-//OS maps device memory. TempleOS identity-maps RAM, so a buffer's
-//address is also its physical (DMA) address.
+//Registers are memory mapped (BAR0). (The card's I/O-port window
+//isn't implemented by QEMU's e1000: reads give 0.) TempleOS
+//identity-maps memory, so a buffer's address is also its physical
+//(DMA) address, and BAR0 is used as is.
 //
-//VERIFY on a real install / QEMU: InU32/OutU32/InU16/OutU16 names, and
-//that MAlloc memory is below 4 GB or the card copes (it takes 64-bit).
-//Host builds don't compile this file's body (no hardware there).
+//Tested on QEMU's e1000 from a Linux guest (tools/e1000test): the same
+//code, with /dev/mem for BAR0, iopl() for the PCI ports and
+///proc/self/pagemap for physical addresses. VERIFY on TempleOS: that
+//BAR0 (just under 4 GB) is mapped, uncached; InU32/OutU32 names.
 
 #define E1000_CTRL	0x0000
 #define E1000_STATUS	0x0008
@@ -51,7 +52,7 @@ class CE1000Tx
 
 class CE1000
 {
-  I64 io;		//I/O BAR base
+  U8 *mmio;		//registers (BAR0)
   CE1000Rx *rx;
   CE1000Tx *tx;
   U8 *rx_buf,*tx_buf;
@@ -59,7 +60,17 @@ class CE1000
   U8 *mem;		//what we allocated (for alignment)
 };
 
-//@host-skip-begin
+//The physical (DMA) address of p. TempleOS identity-maps memory; the
+//Linux-guest test looks it up in /proc/self/pagemap.
+U64 E1000Phys(U8 *p)
+{
+  U64 a=p;
+//@host: { int fd=open("/proc/self/pagemap",O_RDONLY); uint64_t e=0; long ps=getpagesize();
+//@host:   if (fd>=0) { pread(fd,&e,8,(off_t)((uintptr_t)p/ps)*8); close(fd); }
+//@host:   a=((e&((1ULL<<55)-1))*ps)|((uintptr_t)p%ps); }
+  return a;
+}
+
 //---- PCI configuration space (mechanism #1, ports 0xCF8/0xCFC)
 
 U32 PciRead32(I64 bus,I64 dev,I64 fn,I64 reg)
@@ -74,18 +85,35 @@ U0 PciWrite32(I64 bus,I64 dev,I64 fn,I64 reg,I64 v)
   OutU32(0xCFC,v);
 }
 
-//---- registers through the I/O window
+//---- registers
 
 U32 E1000Rd(CE1000 *e,I64 reg)
 {
-  OutU32(e->io,reg);
-  return InU32(e->io+4);
+  U32 *p=e->mmio+reg,v;
+//@host: v=*(volatile U32 *)p; return v;
+//@host-skip-begin
+  v=*p;
+//@host-skip-end
+  return v;
 }
 
 U0 E1000Wr(CE1000 *e,I64 reg,I64 v)
 {
-  OutU32(e->io,reg);
-  OutU32(e->io+4,v);
+  U32 *p=e->mmio+reg;
+//@host: __asm__ volatile("" ::: "memory"); *(volatile U32 *)p=v; return;
+//@host-skip-begin
+  *p=v;
+//@host-skip-end
+}
+
+//Where to reach BAR0 (physical address phys, size bytes) from here.
+U8 *E1000MapBar(I64 phys,I64 size)
+{
+  U8 *p=phys;
+//@host: int fd=open("/dev/mem",O_RDWR|O_SYNC); p=NULL;
+//@host: if (fd>=0) { p=mmap(NULL,size,PROT_READ|PROT_WRITE,MAP_SHARED,fd,phys); close(fd); }
+//@host: if (p==MAP_FAILED) p=NULL;
+  return p;
 }
 
 //Find an 8254x on the PCI bus: TRUE and its location if found.
@@ -122,13 +150,14 @@ Bool E1000Tx(CE1000 *e,U8 *frame,I64 len)
   while (t->cmd && !(t->status&1)) {	//still in flight: wait for DD
     if (++spin>1000000)
       return FALSE;
+//@host: __asm__ volatile("" ::: "memory");
   }
   MemCpy(e->tx_buf+e->tx_cur*E1000_BUF,frame,len);
   if (len<60) {			//minimum ethernet frame
     MemSet(e->tx_buf+e->tx_cur*E1000_BUF+len,0,60-len);
     len=60;
   }
-  t->addr=e->tx_buf+e->tx_cur*E1000_BUF;
+  t->addr=E1000Phys(e->tx_buf+e->tx_cur*E1000_BUF);
   t->len=len;
   t->status=0;
   t->cmd=0x0B;			//EOP | IFCS | RS
@@ -169,17 +198,21 @@ CRosNetIf *E1000Open()
   if (!E1000Find(&bus,&dev,&fn))
     return NULL;
   e=CAlloc(sizeof(CE1000));
-  for (i=0;i<6 && !e->io;i++) {	//the I/O BAR
-    bar=PciRead32(bus,dev,fn,0x10+4*i);
-    if (bar&1)
-      e->io=bar&0xFFFC;
+  bar=PciRead32(bus,dev,fn,0x10);	//BAR0: 128 KB of registers
+  if (bar&1) {
+    Free(e);
+    return NULL;
   }
-  if (!e->io) {
+  addr=bar&0xFFFFFFF0;
+  if ((bar&6)==4)			//64-bit BAR
+    addr|=PciRead32(bus,dev,fn,0x14)<<32;
+  e->mmio=E1000MapBar(addr,0x20000);
+  if (!e->mmio) {
     Free(e);
     return NULL;
   }
   v=PciRead32(bus,dev,fn,0x04);
-  PciWrite32(bus,dev,fn,0x04,v|0x05);	//I/O space + bus master
+  PciWrite32(bus,dev,fn,0x04,v|0x06);	//memory space + bus master
   E1000Wr(e,E1000_CTRL,E1000Rd(e,E1000_CTRL)|(1<<26));	//reset
   Sleep(10);
   while (E1000Rd(e,E1000_CTRL)&(1<<26))
@@ -191,17 +224,19 @@ CRosNetIf *E1000Open()
   E1000Wr(e,E1000_CTRL,v&0x7FFFFFFF);	//not PHY_RST
   for (i=0;i<128;i++)
     E1000Wr(e,E1000_MTA+4*i,0);
-  //memory: descriptors need 16-byte alignment (we give 128)
-  e->mem=CAlloc(2*E1000_NDESC*16+2*E1000_NDESC*E1000_BUF+256);
+  //memory, page aligned so nothing the card reads crosses a page: both
+  //descriptor rings in the first page, then 2 KB buffers, two a page
+  e->mem=CAlloc(4096+4096+2*E1000_NDESC*E1000_BUF+4096);
   addr=e->mem;
-  p=e->mem+(128-(addr&127));
+  p=e->mem+(4096-(addr&4095));
+//@host: mlock(e->mem,4096+4096+2*E1000_NDESC*E1000_BUF+4096);	//keep it where it is
   e->rx=p;
   e->tx=p+E1000_NDESC*16;
-  e->rx_buf=p+2*E1000_NDESC*16;
+  e->rx_buf=p+4096;
   e->tx_buf=e->rx_buf+E1000_NDESC*E1000_BUF;
   for (i=0;i<E1000_NDESC;i++)
-    e->rx[i].addr=e->rx_buf+i*E1000_BUF;
-  addr=e->rx;
+    e->rx[i].addr=E1000Phys(e->rx_buf+i*E1000_BUF);
+  addr=E1000Phys(e->rx);
   E1000Wr(e,E1000_RDBAL,addr&0xFFFFFFFF);
   E1000Wr(e,E1000_RDBAH,addr>>32);
   E1000Wr(e,E1000_RDLEN,E1000_NDESC*16);
@@ -209,7 +244,7 @@ CRosNetIf *E1000Open()
   E1000Wr(e,E1000_RDT,E1000_NDESC-1);
   //EN | MPE (all multicast: DDS) | BAM (broadcast) | 2048 buffers | SECRC
   E1000Wr(e,E1000_RCTL,(1<<1)|(1<<4)|(1<<15)|(1<<26));
-  addr=e->tx;
+  addr=E1000Phys(e->tx);
   E1000Wr(e,E1000_TDBAL,addr&0xFFFFFFFF);
   E1000Wr(e,E1000_TDBAH,addr>>32);
   E1000Wr(e,E1000_TDLEN,E1000_NDESC*16);
@@ -235,4 +270,3 @@ CRosNetIf *E1000Open()
 	nif->mac[2],nif->mac[3],nif->mac[4],nif->mac[5],(E1000Rd(e,E1000_STATUS)>>1)&1);
   return nif;
 }
-//@host-skip-end

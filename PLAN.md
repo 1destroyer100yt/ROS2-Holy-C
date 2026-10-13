@@ -368,7 +368,9 @@ What we do instead is **better**, not just a workaround:
   - [x] IP stack (Ethernet/ARP/IPv4+fragments/UDP/ICMP/IGMP), tested against Linux over TAP
   - [x] Full stack over our IP stack + multicast against Cyclone DDS (TAP)
   - [x] SLIP serial link (tested over a pty against Linux) - this is also Phase 6, in pure HolyC
-  - [~] e1000 driver written (VERIFY on QEMU), `RosNetwork(...)` / `RosNetworkSlip(...)` one-liners
+  - [x] e1000 driver (memory-mapped; QEMU's e1000 ignores the I/O-port window) tested on QEMU's
+        emulated 82540EM from a Linux guest: DHCP + the full echo suite (tools/e1000test)
+  - [x] `RosNetwork(...)` / `RosNetworkDhcp(...)` / `RosNetworkSlip(...)` one-liners
   - [x] DHCP client (`RosNetDhcp`, `RosNetworkDhcp(domain)`), tested against Scapy's DHCP server over TAP
   - [x] Getting files in: `tools/mkdisk` makes a FAT32 disk image of the repo (checked with pyfatfs);
         `tools/templeos/vm.py` drives TempleOS in QEMU headless (docs/TEMPLEOS.md)

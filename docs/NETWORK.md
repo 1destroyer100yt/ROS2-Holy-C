@@ -78,8 +78,11 @@ Both need root for the TAP device. CI runs them with sudo.
 
 ## Links
 - **e1000** (`src/Net/E1000.HC`): QEMU's default card and VirtualBox's "PRO/1000 MT". It's polled
-  and uses the card's I/O-port register window. It's written from the Intel 8254x manual but
-  **not run yet** (no hardware or emulator here). Its `VERIFY` notes list what to check first.
+  and uses the memory-mapped registers (QEMU doesn't implement the card's I/O-port window).
+  `tools/e1000test/run.sh` runs it on QEMU's emulated card: the HolyC is built as a static Linux
+  program and booted as `/init` of a Linux guest, where it finds the card on the PCI bus itself,
+  gets an address from a DHCP server (Scapy) and passes the same UDP/ICMP suite as the TAP test,
+  against the host's Linux kernel. On TempleOS, check the `VERIFY` notes (BAR0 mapping).
 - **SLIP** (`src/Net/Slip.HC`): IP over a serial port (COM1 at 115200), for machines without a
   supported card. Tested end to end: `tools/nettest/run.sh slip` runs our stack over a pty, with
   a Linux TUN interface on the other end.
@@ -113,4 +116,5 @@ Getting the files into TempleOS isn't covered here yet. You need a disk image th
 can read, and long file names matter (`TestGolden.HC` etc.).
 
 ## Not done yet
-- Running the e1000 driver on a real TempleOS / QEMU (it compiles in our lint, nothing more).
+- Running the e1000 driver on a real TempleOS: it works on QEMU's e1000 from a Linux guest
+  (`tools/e1000test`), but TempleOS's mapping of BAR0 and its port I/O names are unchecked.
