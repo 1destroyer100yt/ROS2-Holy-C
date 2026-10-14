@@ -324,18 +324,6 @@ U0 TestHashGolden()
 	"RIHS01_e896981c8e809b26b00ce5fe1440f665d57ffcb02d6b882829b45445917e056b");
   RosTestStr("turtlesim/action/RotateAbsolute_FeedbackMessage",RosTypeHash(RosTypeFind("turtlesim/action/RotateAbsolute_FeedbackMessage")),
 	"RIHS01_301a2a4ed96af28a40155e14dadf0c48eee5decaecd755be05ccda8144ca40b3");
-  RosTestStr("type_description_interfaces/msg/FieldType",RosTypeHash(RosTypeFind("type_description_interfaces/msg/FieldType")),
-	"RIHS01_a70b6dd919645a03a3586f7f821defbc886ea3e531a1d95cc0f380a3973ccaa6");
-  RosTestStr("type_description_interfaces/msg/Field",RosTypeHash(RosTypeFind("type_description_interfaces/msg/Field")),
-	"RIHS01_c0b01379cd4226281285ccaf6be46653968f855f7c5e41614ff5d7a854efef7c");
-  RosTestStr("type_description_interfaces/msg/IndividualTypeDescription",RosTypeHash(RosTypeFind("type_description_interfaces/msg/IndividualTypeDescription")),
-	"RIHS01_55c827d86c3c141bdd318fe6c22e11190e4d3b37c8f4f9751a084aa05ce96560");
-  RosTestStr("type_description_interfaces/msg/KeyValue",RosTypeHash(RosTypeFind("type_description_interfaces/msg/KeyValue")),
-	"RIHS01_274fe56bf14f33c7512e34c646a37579ee36779f745f049a9760763e817f0c42");
-  RosTestStr("type_description_interfaces/msg/TypeDescription",RosTypeHash(RosTypeFind("type_description_interfaces/msg/TypeDescription")),
-	"RIHS01_739f2508c9fa3a6f330913ff5b9d25fb74159a077da71e1087f51a60c12a080b");
-  RosTestStr("type_description_interfaces/msg/TypeSource",RosTypeHash(RosTypeFind("type_description_interfaces/msg/TypeSource")),
-	"RIHS01_faeaec7596c04ecf5b6e99ad225e4c7cbb997ad5435f793526fb3984d011aae5");
   RosTestStr("visualization_msgs/msg/ImageMarker",RosTypeHash(RosTypeFind("visualization_msgs/msg/ImageMarker")),
 	"RIHS01_603152491ef2331c200a5305230d31f6e8704875944b388da0f547c415d11836");
   RosTestStr("visualization_msgs/msg/MeshFile",RosTypeHash(RosTypeFind("visualization_msgs/msg/MeshFile")),

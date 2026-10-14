@@ -160,6 +160,18 @@ def count_entries(src):
     return n
 
 
+TEMPLEOS_NAME_MAX = 25    # TempleOS's FAT32 driver reads 2 long-name entries: 13 + 12 chars
+
+
+def long_names(src):
+    """Names TempleOS will see cut short."""
+    for dirpath, dirnames, files in os.walk(src):
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
+        for n in dirnames + files:
+            if len(n) > TEMPLEOS_NAME_MAX and os.path.splitext(n)[1] not in SKIP_EXT:
+                yield os.path.relpath(os.path.join(dirpath, n), src)
+
+
 def make(out, dirs, size_mb):
     total = size_mb * 1024 * 1024 // SECTOR
     psize = total - PART_START
@@ -215,6 +227,9 @@ def make(out, dirs, size_mb):
         for c, chunk in fs.data.items():
             img.seek(base + (fs.data_start + (c - 2) * SPC) * SECTOR)
             img.write(chunk)
+    for d in dirs:
+        for n in long_names(d):
+            print("note: TempleOS sees only the first %d characters of %s" % (TEMPLEOS_NAME_MAX, n))
     used_mb = (fs.next_free - 2) * SPC * SECTOR / 1e6
     print("%s: %d MB disk, FAT32 partition, %.1f MB used" % (out, size_mb, used_mb))
 

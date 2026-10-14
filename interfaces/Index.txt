@@ -162,12 +162,6 @@ turtlesim/srv/Spawn
 turtlesim/srv/TeleportAbsolute
 turtlesim/srv/TeleportRelative
 turtlesim/action/RotateAbsolute
-type_description_interfaces/msg/FieldType
-type_description_interfaces/msg/Field
-type_description_interfaces/msg/IndividualTypeDescription
-type_description_interfaces/msg/KeyValue
-type_description_interfaces/msg/TypeDescription
-type_description_interfaces/msg/TypeSource
 visualization_msgs/msg/ImageMarker
 visualization_msgs/msg/MeshFile
 visualization_msgs/msg/UVCoordinate

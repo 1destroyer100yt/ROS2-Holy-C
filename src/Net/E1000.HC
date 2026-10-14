@@ -4,12 +4,12 @@
 //Registers are memory mapped (BAR0). (The card's I/O-port window
 //isn't implemented by QEMU's e1000: reads give 0.) TempleOS
 //identity-maps memory, so a buffer's address is also its physical
-//(DMA) address, and BAR0 is used as is.
+//(DMA) address; device memory is reached uncached through
+//dev.uncached_alias, like TempleOS's own HPET and LAPIC code.
 //
 //Tested on QEMU's e1000 from a Linux guest (tools/e1000test): the same
 //code, with /dev/mem for BAR0, iopl() for the PCI ports and
-///proc/self/pagemap for physical addresses. VERIFY on TempleOS: that
-//BAR0 (just under 4 GB) is mapped, uncached; InU32/OutU32 names.
+///proc/self/pagemap for physical addresses.
 
 #define E1000_CTRL	0x0000
 #define E1000_STATUS	0x0008
@@ -109,7 +109,11 @@ U0 E1000Wr(CE1000 *e,I64 reg,I64 v)
 //Where to reach BAR0 (physical address phys, size bytes) from here.
 U8 *E1000MapBar(I64 phys,I64 size)
 {
-  U8 *p=phys;
+  U8 *p=NULL;
+//@host-skip-begin
+  if (phys<0x100000000)	//TempleOS maps the low 4 GB uncached here (as for HPET/LAPIC)
+    p=dev.uncached_alias+phys;
+//@host-skip-end
 //@host: int fd=open("/dev/mem",O_RDWR|O_SYNC); p=NULL;
 //@host: if (fd>=0) { p=mmap(NULL,size,PROT_READ|PROT_WRITE,MAP_SHARED,fd,phys); close(fd); }
 //@host: if (p==MAP_FAILED) p=NULL;

@@ -23,7 +23,6 @@ Cd(__DIR__);;
 #include "tf2_msgs/Types.HC"
 #include "trajectory_msgs/Types.HC"
 #include "turtlesim/Types.HC"
-#include "type_description_interfaces/Types.HC"
 #include "visualization_msgs/Types.HC"
 #include "actionlib_msgs/Types.HC"
 
@@ -50,7 +49,6 @@ U0 RosIfaceLoadAll()
   RosIfaceLoad_tf2_msgs();
   RosIfaceLoad_trajectory_msgs();
   RosIfaceLoad_turtlesim();
-  RosIfaceLoad_type_description_interfaces();
   RosIfaceLoad_visualization_msgs();
   RosIfaceLoad_actionlib_msgs();
 }

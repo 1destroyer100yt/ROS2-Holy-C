@@ -397,18 +397,6 @@ U0 TestGolden()
 	"status: -128\nresult:\n  delta: 1024.0\n");
   RosTestGolden("turtlesim/action/RotateAbsolute_FeedbackMessage","0001000000ff00000100ff6b00ff00000100ff000000c842",
 	"goal_id:\n  uuid:\n  - 0\n  - 255\n  - 0\n  - 0\n  - 1\n  - 0\n  - 255\n  - 107\n  - 0\n  - 255\n  - 0\n  - 0\n  - 1\n  - 0\n  - 255\n  - 0\nfeedback:\n  remaining: 100.0\n");
-  RosTestGolden("type_description_interfaces/msg/FieldType","00010000ff00000000000000ffffffffffffffff00000000000000000a000000626173655f6c696e6b00",
-	"type_id: 255\ncapacity: 18446744073709551615\nstring_capacity: 0\nnested_type_name: 'base_link'\n");
-  RosTestGolden("type_description_interfaces/msg/Field","000100000a000000626173655f6c696e6b00000075a8b55c4a41f39b0100000000000000070000006120623a206300000100000000",
-	"name: 'base_link'\ntype:\n  type_id: 0\n  capacity: 11237397282858313845\n  string_capacity: 1\n  nested_type_name: 'a b: c'\ndefault_value: ''\n");
-  RosTestGolden("type_description_interfaces/msg/IndividualTypeDescription","00010000030000006869000000000000",
-	"type_name: 'hi'\nfields: []\n");
-  RosTestGolden("type_description_interfaces/msg/KeyValue","00010000040000006d617000070000006120623a206300",
-	"key: 'map'\nvalue: 'a b: c'\n");
-  RosTestGolden("type_description_interfaces/msg/TypeDescription","00010000010000000000000001000000010000000001000000000000000000000000000001000000000000000a000000626173655f6c696e6b000000070000006120623a2063000002000000040000006d617000000000000500000069742773000000000200000001000000000100000000000000000000000000000000000000000000070000006120623a20630000040000006d617000040000006d617000ff000000dd172f199754842f01000000000000000100000000000000050000006974277300",
-	"type_description:\n  type_name: ''\n  fields:\n  - name: ''\n    type:\n      type_id: 1\n      capacity: 0\n      string_capacity: 1\n      nested_type_name: 'base_link'\n    default_value: 'a b: c'\nreferenced_type_descriptions:\n- type_name: 'map'\n  fields: []\n- type_name: 'it''s'\n  fields:\n  - name: ''\n    type:\n      type_id: 1\n      capacity: 0\n      string_capacity: 0\n      nested_type_name: 'a b: c'\n    default_value: 'map'\n  - name: 'map'\n    type:\n      type_id: 255\n      capacity: 3423954624647731165\n      string_capacity: 1\n      nested_type_name: ''\n    default_value: 'it''s'\n");
-  RosTestGolden("type_description_interfaces/msg/TypeSource","00010000010000000000000003000000686900000a000000626173655f6c696e6b00",
-	"type_name: ''\nencoding: 'hi'\nraw_file_contents: 'base_link'\n");
   RosTestGolden("visualization_msgs/msg/ImageMarker","000100000000000001000000010000000000000003000000686900000000000083ef11990100000000000000f168e388b5f8e43e77be9f1a2fdd5e40f168e388b5f8e43e0000a0bf0000003f0000003f000000000000804401000000000040400000a0bf0000c8420000a0bfdef46d9b01000000020000000000000077be9f1a2fdd5e409a9999999999b93f00000000000004c09a9999999999b93f48afbc9af2d75a3e00000000000004c00100000000004040000080440000f0c000008044",
 	"header:\n  stamp:\n    sec: 0\n    nanosec: 1\n  frame_id: ''\nns: 'hi'\nid: 0\ntype: -1726877821\naction: 1\nposition:\n  x: 1e-05\n  y: 123.456\n  z: 1e-05\nscale: -1.25\noutline_color:\n  r: 0.5\n  g: 0.5\n  b: 0.0\n  a: 1024.0\nfilled: 1\nfill_color:\n  r: 3.0\n  g: -1.25\n  b: 100.0\n  a: -1.25\nlifetime:\n  sec: -1687292706\n  nanosec: 1\npoints:\n- x: 123.456\n  y: 0.1\n  z: -2.5\n- x: 0.1\n  y: 2.5e-08\n  z: -2.5\noutline_colors:\n- r: 3.0\n  g: 1024.0\n  b: -7.5\n  a: 1024.0\n");
   RosTestGolden("visualization_msgs/msg/MeshFile","00010000040000006d61700001000000ff",

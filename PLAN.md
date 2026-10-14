@@ -308,7 +308,7 @@ What we do instead is **better**, not just a workaround:
   - [ ] First compile + `RosTestsRun;` on real TempleOS (check every `VERIFY` comment, e.g.
         `GetTSC`/`cnts.time_stamp_freq` in `Time.HC`, `StrPrintJoin` in `Log.HC`)
 - [x] Phase 2 messages
-  - [x] 182 interfaces / 24 packages (`interfaces/`), Jazzy definitions + hand-written services
+  - [x] 176 interfaces / 23 packages (`interfaces/`), Jazzy definitions + hand-written services
   - [x] `.msg`/`.srv` parser -> runtime type descriptions (`src/Msg/Type.HC`, `Parse.HC`)
   - [x] CDR (XCDR1) serializer/deserializer, LE + BE reading, bounds-checked (`Cdr.HC`)
   - [x] new/free/deep copy, set-by-path (`linear.x`, `poses[2].pose...`), YAML like `ros2 topic echo` (`Msg.HC`)
