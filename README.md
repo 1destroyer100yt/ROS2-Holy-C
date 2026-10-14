@@ -33,5 +33,5 @@ PluginList;
 ```
 (`Run.HC` loads everything first; outside of tests use `#include "~/ROS2-Holy-C/Load.HC"`.)
 
-The HolyC files have not been compiled on a real TempleOS install yet.
+All of it compiles on a real TempleOS 5.03 (in QEMU, see [docs/TEMPLEOS.md](docs/TEMPLEOS.md)).
 If something doesn't compile, open an issue with the error text.

@@ -39,10 +39,26 @@ or a fixed address: `RosNetwork("10.0.2.15","255.255.255.0","10.0.2.2",0);`.
 For ROS 2 on the Linux side to see TempleOS, use a TAP or bridged network instead of user
 networking (user networking doesn't pass multicast); see [NETWORK.md](NETWORK.md).
 
-## What hasn't been checked on a real TempleOS yet
-Everything here is compiled and tested on Linux through `tools/hctest` (HolyC translated to
-C), plus a linter for HolyC's differences. The real HolyC compiler hasn't seen it yet. Lines
-marked `VERIFY` in the source are the TempleOS-only parts (drawing, keyboard, disk, PCI,
-the e1000 driver, Spawn on other cores). `tools/templeos/vm.py` drives TempleOS in QEMU
-with no screen (screenshots, typing) for testing it automatically once a TempleOS ISO is
-available.
+## Checked on a real TempleOS
+The whole of `Load.HC` (core, all 176 interfaces, graph, tools, tf, RvizLite, hardware,
+network, DDS) compiles on TempleOS 5.03 with no errors; the only warnings are unused
+callback parameters and "Using 64-bit reg var". To repeat it (QEMU, no screen):
+```
+python3 tools/templeos/run.py TempleOS.ISO 'C:/ROS2-Holy-C/Load.HC'
+```
+`run.py` puts the repo on a FAT32 disk image (`tools/mkdisk`), boots the live CD, mounts
+the image as C:, compiles the file inside `try`/`catch`, and prints the terminal's text,
+which TempleOS sends out of COM1. Extra arguments are commands to run afterwards, for
+example `'RosTestsRun;'` with `C:/ROS2-Holy-C/tests/Run.HC`. `tools/templeos/ctl.py`
+takes screenshots of, and types into, a run in progress.
+
+Things the real compiler taught us (the linter in `tools/hctest` now checks them):
+- HolyC has no `continue`: jump to a label before the loop's closing brace.
+- `&Fun()->member` takes the address of the function `Fun`: put the call's result in a
+  variable first.
+- `reg` and `noreg` are keywords (register variables), so they can't be names.
+- TempleOS's FAT32 driver keeps at most 25 characters of a long file name.
+
+Still only checked on Linux (through `tools/hctest`, HolyC translated to C): running the
+code. Lines marked `VERIFY` in the source are the TempleOS-only parts (drawing, keyboard,
+disk, PCI, the e1000 driver, Spawn on other cores).
