@@ -28,3 +28,8 @@ U0 SmpProbe()
     Print("core %d: 100 x 2 ms sleeps took %d ms\n",cpu,smp_took[cpu]/ROS_NS_PER_MS);
   }
 }
+
+Cd(__DIR__);;
+#include "../../src/Core/Test.HC"
+Cd(__DIR__);;
+#include "../TestExecMT.HC"

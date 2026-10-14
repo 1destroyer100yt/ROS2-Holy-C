@@ -9,11 +9,12 @@ real TempleOS (tools/templeos/run.sh).
   vm.type('Dir;\\n')
   vm.stop()
 
-QEMU is $QEMU or qemu-system-x86_64 on PATH. Screenshots are PPM
+QEMU is $QEMU or qemu-system-x86_64 on PATH; $QEMU_EXTRA adds arguments. Screenshots are PPM
 (QEMU's screendump), converted to PNG when Pillow is installed.
 """
 import json
 import os
+import shlex
 import socket
 import subprocess
 import tempfile
@@ -51,7 +52,7 @@ class Vm:
             cmd += ["-drive", "file=%s,format=raw,if=ide,index=0" % self.disk]
         if os.path.exists("/dev/kvm") and os.access("/dev/kvm", os.W_OK):
             cmd += ["-enable-kvm"]
-        cmd += self.extra
+        cmd += self.extra + shlex.split(os.environ.get("QEMU_EXTRA", ""))
         self.proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         for _ in range(100):
             if os.path.exists(self.qmp_path):

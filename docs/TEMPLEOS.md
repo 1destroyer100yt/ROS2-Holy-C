@@ -101,5 +101,16 @@ What this turned up (fixed):
 - `#include` paths are relative to the current directory, not to the including file: files
   that include others start with `Cd(__DIR__);;`.
 
+### Several cores
+With `CPUS=2` (`mp_cnt` 2) the unit tests all pass too, and the multi-threaded executor's
+callbacks run on both cores (160 each in `TestExecMT`) with no node ever running two
+callbacks at once. How much faster it is can't be measured in QEMU without KVM: with one
+core it overlaps the test's 2 ms "work" sleeps 3.6x; with two emulated cores it's about
+1x (QEMU's multi-threaded TCG) or 10x slower (`QEMU_EXTRA="-accel tcg,thread=single"`),
+because emulated cross-core locks and task switches cost more than the work. So on
+TempleOS the test checks that the work spreads over the cores, and the speed check runs
+on Linux, where the threads are real. `tests/templeos/Smp.HC` has the probes (sleep timing
+per core, `TestExecMT` alone).
+
 `tools/templeos/Com.HC` is how the host hears TempleOS: `ComTailStart` hooks TempleOS's
 output chain (`KeyDevAdd`) so whatever is printed also goes out of COM1 as it's printed.

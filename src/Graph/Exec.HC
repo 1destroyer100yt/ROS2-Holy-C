@@ -284,7 +284,7 @@ U0 RosExecSpinMT(CRosExec *e,I64 threads)
     RosLockGet(&e->lock);
     e->workers++;
     RosLockPut(&e->lock);
-    cpu=i%mp_cnt;	//VERIFY on TempleOS: worker tasks on other cores
+    cpu=i%mp_cnt;	//spread over the cores (checked on a 2-core TempleOS 5.03)
     if (!Spawn(&RosExecWorker,e,"RosExecWorker",cpu)) {
       RosLockGet(&e->lock);
       e->workers--;
