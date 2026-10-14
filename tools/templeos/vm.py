@@ -41,7 +41,9 @@ class Vm:
     def start(self, boot="d"):
         qemu = os.environ.get("QEMU", "qemu-system-x86_64")
         cmd = [qemu, "-m", str(self.mem), "-smp", str(self.cpus), "-display", "none",
-               "-qmp", "unix:%s,server,nowait" % self.qmp_path, "-boot", boot,
+               "-qmp", "unix:%s,server,nowait" % self.qmp_path,
+               "-qmp", "unix:%s,server,nowait" % os.path.join(self.dir, "ctl.sock"),  # for ctl.py
+               "-boot", boot,
                "-rtc", "base=utc", "-serial", "file:%s" % os.path.join(self.dir, "com1.txt")]
         if self.iso:
             cmd += ["-cdrom", self.iso]

@@ -8,7 +8,8 @@ Boots the ISO (live CD, no install) with a FAT32 disk image of the repo
 ExeFile2 inside try/catch, runs the extra commands, then
 sends the terminal's text out of COM1 (tools/templeos/Com.HC); this
 script prints it (QEMU writes COM1 to a file). Screenshots go to $SHOTS (default /tmp).
-Environment: QEMU, BOOT_WAIT (s, default 40), TIMEOUT (s), CPUS.
+Environment: QEMU, BOOT_WAIT (s, default 40), TIMEOUT (s), CPUS,
+STUCK (s the screen may stay unchanged, default 600).
 """
 import os
 import subprocess
@@ -62,8 +63,19 @@ def main():
         vm.screenshot(os.path.join(shots, "tos_mounted.png"))
         step(vm, 'DocClear;#include "C:/Auto/Auto.HC"\n', 1)
         end = time.time() + float(os.environ.get("TIMEOUT", "1800"))
+        print("VM dir (ctl.py %s/ctl.sock shot x.png):" % vm.dir, vm.dir, file=sys.stderr, flush=True)
+        last, since, nxt = None, time.time(), 0
         while "@@END@@" not in vm.serial() and time.time() < end:
             time.sleep(2)
+            if time.time() >= nxt:            # a progress picture; give up when the screen froze
+                nxt = time.time() + 60
+                vm.screenshot(os.path.join(shots, "tos_progress.png"))
+                b = vm.body()
+                if last is None or len(b) != len(last) or sum(x != y for x, y in zip(b, last)) > 600:  # more than the cursor
+                    last, since = b, time.time()
+                elif time.time() - since > float(os.environ.get("STUCK", "600")):
+                    print("screen unchanged for %ss: stuck" % os.environ.get("STUCK", "600"), file=sys.stderr)
+                    break
         vm.screenshot(os.path.join(shots, "tos_done.png"))
         out = vm.serial()
     finally:
