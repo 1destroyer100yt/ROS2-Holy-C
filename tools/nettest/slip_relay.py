@@ -61,7 +61,13 @@ def main():
             out.append(END)
             os.write(master, bytes(out))
         if master in r:
-            for b in os.read(master, 65536):
+            try:
+                data = os.read(master, 65536)
+            except ConnectionResetError:     # QEMU went away
+                return 1
+            if not data and len(sys.argv) > 2:
+                return 0                     # QEMU closed the serial port
+            for b in data:
                 if b == END:
                     if buf:
                         os.write(tun, bytes(buf))
