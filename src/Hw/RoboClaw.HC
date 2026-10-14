@@ -15,7 +15,8 @@
 #define ROBOCLAW_GET_ENCODERS	78
 #define ROBOCLAW_RESET_ENC	20
 #define ROBOCLAW_GET_VERSION	21
-#define ROBOCLAW_TIMEOUT_NS	20000000	//per reply
+#define ROBOCLAW_TIMEOUT_NS	100000000	//per reply: ~3 ms on the wire, but on TempleOS
+			//Yield can hand the CPU to the window manager for a while
 
 class CRosRoboClaw
 {
