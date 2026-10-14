@@ -33,7 +33,7 @@ if [ "$1" = "slipcom" ]; then
   guest_initrd tests/net/NetTap.HC SlipComGuest "$g" || exit 1
   "$QEMU" -m 256 -display none -no-reboot -serial file:"$out" \
     -chardev socket,id=c2,path="$g/com2.sock",server=on,wait=on -serial chardev:c2 \
-    -kernel "$VMLINUZ" -initrd "$g/initrd.cpio" -append "console=ttyS0 panic=-1 quiet" &
+    -kernel "$VMLINUZ" -initrd "$g/initrd.cpio" -append "console=ttyS0 panic=-1 quiet" 2> "$g/qemu.err" &
   holyc=$!
   rel=$(mktemp)
   python3 tools/nettest/slip_relay.py --unix "$g/com2.sock" > "$rel" 2>&1 & relay=$!
@@ -51,7 +51,10 @@ fi
 holyc=$!
 i=0
 while ! grep -q READY "$out" && [ $i -lt 600 ] && kill -0 $holyc 2>/dev/null; do sleep 0.1; i=$((i+1)); done
-if ! grep -q READY "$out"; then cat "$out"; echo "nettest: HolyC side didn't start"; kill $holyc; exit 1; fi
+if ! grep -q READY "$out"; then
+  cat "$out"; [ -n "$g" ] && cat "$g/qemu.err" "$rel"
+  echo "nettest: HolyC side didn't start"; kill $holyc 2>/dev/null; exit 1
+fi
 NET_DST=$dst NET_SRC=$src python3 tools/nettest/client.py; client=$?
 if [ -n "$g" ]; then  # QEMU: wait for the guest to finish, then stop it
   i=0; while ! grep -q "RESULT holyc" "$out" && [ $i -lt 300 ]; do sleep 0.1; i=$((i+1)); done
