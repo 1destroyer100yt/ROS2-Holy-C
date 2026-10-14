@@ -13,6 +13,7 @@ sys.path.insert(0, __import__("os").path.dirname(__file__))
 from vm import Vm  # noqa: E402
 
 v = Vm()
+__import__("os").rmdir(v.dir)          # not ours: we only talk to a running VM
 v.qmp_path = sys.argv[1]
 v.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 v.sock.connect(v.qmp_path)

@@ -45,7 +45,7 @@ def main():
             fh.write('  ExePutS2("%s");\n' % c.replace("\\", "\\\\").replace('"', '\\"'))
         # ComDump in both branches: after an exception the shell may not
         # run the next statement
-        fh.write('  ComDump;\n} catch {\n  "\\n@@EXCEPTION@@\\n";\n  Fs->catch_except=TRUE;\n  ComDump;\n}\n')
+        fh.write('  ComDump;\n} catch {\n  "\\n@@EXCEPTION@@\\n";\n  Fs->catch_except=TRUE;\n  ComDump;\n}\n;\n')  # the shell reads a token past '}': give it one
     subprocess.run([sys.executable, os.path.join(REPO, "tools", "mkdisk", "mkdisk.py"), img, REPO, auto],
                    check=True, stdout=subprocess.DEVNULL)
     vm = Vm(iso=iso, disk=img, mem=1024, cpus=int(os.environ.get("CPUS", "1")))
