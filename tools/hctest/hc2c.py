@@ -31,6 +31,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 LINT_RULES = [
     (r"\?", "no ?: operator in HolyC - use if/else"),
     (r"\bdo\s*\{|\bdo\s*$", "avoid do/while - use while"),
+    (r"\b(reg|noreg|lastclass|interrupt|haserrcode|argpop|noargpop|no_warn)\b", "HolyC keyword - pick another name"),
     (r"\bcontinue\b", "no continue in HolyC - goto a label before the loop's closing brace"),
     (r"(?:^|[(,=!;{}?:<>+\-*/|^~]|\breturn)\s*&\s*[A-Z]\w*\s*\(", "&Fun(...) is the function's address in HolyC - put the call's result in a variable"),
     (r"\b(const|static|volatile|unsigned|signed|int|char|void|float|double|long|short|"

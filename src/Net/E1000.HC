@@ -73,23 +73,23 @@ U64 E1000Phys(U8 *p)
 
 //---- PCI configuration space (mechanism #1, ports 0xCF8/0xCFC)
 
-U32 PciRead32(I64 bus,I64 dev,I64 fn,I64 reg)
+U32 PciRead32(I64 bus,I64 dev,I64 fn,I64 r)
 {
-  OutU32(0xCF8,0x80000000|(bus<<16)|(dev<<11)|(fn<<8)|(reg&0xFC));
+  OutU32(0xCF8,0x80000000|(bus<<16)|(dev<<11)|(fn<<8)|(r&0xFC));
   return InU32(0xCFC);
 }
 
-U0 PciWrite32(I64 bus,I64 dev,I64 fn,I64 reg,I64 v)
+U0 PciWrite32(I64 bus,I64 dev,I64 fn,I64 r,I64 v)
 {
-  OutU32(0xCF8,0x80000000|(bus<<16)|(dev<<11)|(fn<<8)|(reg&0xFC));
+  OutU32(0xCF8,0x80000000|(bus<<16)|(dev<<11)|(fn<<8)|(r&0xFC));
   OutU32(0xCFC,v);
 }
 
 //---- registers
 
-U32 E1000Rd(CE1000 *e,I64 reg)
+U32 E1000Rd(CE1000 *e,I64 r)
 {
-  U32 *p=e->mmio+reg,v;
+  U32 *p=e->mmio+r,v;
 //@host: v=*(volatile U32 *)p; return v;
 //@host-skip-begin
   v=*p;
@@ -97,9 +97,9 @@ U32 E1000Rd(CE1000 *e,I64 reg)
   return v;
 }
 
-U0 E1000Wr(CE1000 *e,I64 reg,I64 v)
+U0 E1000Wr(CE1000 *e,I64 r,I64 v)
 {
-  U32 *p=e->mmio+reg;
+  U32 *p=e->mmio+r;
 //@host: __asm__ volatile("" ::: "memory"); *(volatile U32 *)p=v; return;
 //@host-skip-begin
   *p=v;

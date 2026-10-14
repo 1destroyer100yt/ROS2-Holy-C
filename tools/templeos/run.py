@@ -41,7 +41,9 @@ def main():
         fh.write('try {\n  ExeFile2("%s");\n' % inc)     # ExeFile2: errors come here
         for c in cmds:
             fh.write('  ExePutS2("%s");\n' % c.replace("\\", "\\\\").replace('"', '\\"'))
-        fh.write('} catch {\n  "\\n@@EXCEPTION@@\\n";\n  Fs->catch_except=TRUE;\n}\nComDump;\n')
+        # ComDump in both branches: after an exception the shell may not
+        # run the next statement
+        fh.write('  ComDump;\n} catch {\n  "\\n@@EXCEPTION@@\\n";\n  Fs->catch_except=TRUE;\n  ComDump;\n}\n')
     subprocess.run([sys.executable, os.path.join(REPO, "tools", "mkdisk", "mkdisk.py"), img, REPO, auto],
                    check=True, stdout=subprocess.DEVNULL)
     vm = Vm(iso=iso, disk=img, mem=1024, cpus=int(os.environ.get("CPUS", "1")))
