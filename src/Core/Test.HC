@@ -39,9 +39,9 @@ U0 RosTestI64(U8 *what,I64 got,I64 want)
   }
 }
 
-U0 RosTestF64(U8 *what,F64 got,F64 want,F64 eps)
+U0 RosTestF64(U8 *what,F64 got,F64 want,F64 tol)
 {
-  if (Abs(got-want)<=eps)
+  if (Abs(got-want)<=tol)
     ros_test_pass++;
   else {
     RosTestFailed(what);
