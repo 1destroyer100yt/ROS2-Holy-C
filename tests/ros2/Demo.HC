@@ -68,9 +68,11 @@ U0 DemoFibTick(CDemo *d)
   RosMsgFini(ros_t_example_interfaces_Fibonacci_Feedback,&fb);
 }
 
+I64 demo_seconds=30;	//on TempleOS set it before Ros2DemoE1000 (hw.py does)
+
 I64 DemoSeconds()
 {
-  I64 s=30;
+  I64 s=demo_seconds;
   U8 *e=NULL;
 //@host: e=(U8 *)getenv("DEMO_SECONDS");
   if (e)
