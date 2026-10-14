@@ -39,6 +39,7 @@ def main():
     os.mkdir(auto)
     with open(os.path.join(auto, "Auto.HC"), "w") as fh:
         fh.write('#include "C:/ROS2-Holy-C/tools/templeos/Com.HC"\n')
+        fh.write('ComPutS("@@START@@\\n");\n')    # tells run.py the typed command arrived
         fh.write('try {\n  ExeFile2("%s");\n' % inc)     # ExeFile2: errors come here
         for c in cmds:
             fh.write('  ExePutS2("%s");\n' % c.replace("\\", "\\\\").replace('"', '\\"'))
@@ -61,7 +62,15 @@ def main():
         step(vm, "1\n", 6)                    # the first (primary IDE) disk
         step(vm, "\n", 2)                     # done mounting
         vm.screenshot(os.path.join(shots, "tos_mounted.png"))
-        step(vm, 'DocClear;#include "C:/Auto/Auto.HC"\n', 1)
+        for _ in range(4):                    # keystrokes get lost now and then: retype
+            step(vm, 'DocClear;#include "C:/Auto/Auto.HC"\n', 1)
+            t = time.time() + 90
+            while "@@START@@" not in vm.serial() and time.time() < t:
+                time.sleep(2)
+            if "@@START@@" in vm.serial():
+                break
+            vm.screenshot(os.path.join(shots, "tos_retype.png"))
+            step(vm, "\n", 3)
         end = time.time() + float(os.environ.get("TIMEOUT", "1800"))
         print("VM dir (ctl.py %s/ctl.sock shot x.png):" % vm.dir, vm.dir, file=sys.stderr, flush=True)
         last, since, nxt = None, time.time(), 0
