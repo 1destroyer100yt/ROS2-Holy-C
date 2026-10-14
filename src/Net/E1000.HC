@@ -135,7 +135,7 @@ Bool E1000Find(I64 *bus,I64 *dev,I64 *fn)
           case 0x100E:	//82540EM (QEMU e1000)
           case 0x100F:	//82545EM
           case 0x1004:	//82543GC (VirtualBox)
-          case 0x10D3:	//82574L (QEMU e1000e) - VERIFY: e1000e may need more
+          case 0x10D3:	//82574L (QEMU e1000e: E1000_DEVICE=e1000e tools/e1000test/run.sh)
             *bus=b;
             *dev=d;
             *fn=f;

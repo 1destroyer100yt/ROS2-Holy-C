@@ -7,7 +7,7 @@ U8 *RosFileRead(U8 *path,I64 *size)
   U8 *buf=NULL;
   I64 n=0;
 //@host-skip-begin
-  buf=FileRead(path,&n);	//VERIFY: TempleOS FileRead adds a NUL
+  buf=FileRead(path,&n);	//TempleOS FileRead adds a NUL (its source; the tests pass there)
 //@host-skip-end
 //@host: FILE *fh=fopen((char *)path,"rb");
 //@host: if (!fh) return NULL;
@@ -33,7 +33,7 @@ Bool RosFileWrite(U8 *path,U8 *data,I64 len)
 Bool RosDirMake(U8 *path)
 {
 //@host-skip-begin
-  DirMk(path);	//VERIFY: TempleOS DirMk
+  DirMk(path);	//TempleOS DirMk (makes one level; the bag tests use it there)
   return TRUE;
 //@host-skip-end
 //@host: mkdir((char *)path,0755); return TRUE;

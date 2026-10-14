@@ -373,7 +373,7 @@ U0 TurtleSimSetup(CRosNode *n,U8 *arg)
 }
 
 //@host-skip-begin
-//---- drawing (TempleOS). VERIFY: DC/Gr names on a real install.
+//---- drawing (TempleOS; checked on 5.03 by tools/templeos/hw.py).
 
 #define TURTLE_PX	400	//world drawn this many pixels across
 

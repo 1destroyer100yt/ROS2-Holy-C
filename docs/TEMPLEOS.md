@@ -70,7 +70,36 @@ Things the real compiler taught us (the linter in `tools/hctest` now checks them
   the last bits. `RosStrToF64` doesn't use them: it is exact (big integers), and tests that
   need exact values use `RosTestLit("0.0001")`.
 
-Still only checked on Linux (through `tools/hctest`, HolyC translated to C): the network
-card, DDS against real ROS 2, the RoboClaw over a serial port, and the screen and keyboard
-parts (TurtleSim's window, RvizLite). Lines marked `VERIFY` in the source are the TempleOS-only parts (drawing, keyboard,
-disk, PCI, the e1000 driver, Spawn on other cores).
+### Hardware, screen and network on a real TempleOS
+`tools/templeos/hw.py` boots TempleOS 5.03 once (QEMU, no screen) and runs what only a
+real TempleOS can show:
+
+| part | what runs in TempleOS | what checks it |
+|------|------------------------|----------------|
+| `serial` | the RoboClaw driver + DiffDrive on COM2's 16550 (`tests/hw/RoboClaw.HC`) | the simulator in `tools/hwtest`, itself checked against the official Basicmicro library |
+| `turtle` | TurtleSim in the shell's window | arrow keys sent in over QEMU; the screenshot must show the turtle and a new trail |
+| `rviz` | RvizLite showing a latched map and a static transform (`tests/templeos/Screen.HC`) | the screenshot's map pixels |
+| `e1000` | the demo node (`tests/ros2/Demo.HC`) on our e1000 driver, IP stack, DHCP and DDS | the real `ros2` command line on the host, with Fast DDS and Cyclone DDS (`tools/ros2test/checks.sh`) |
+
+```
+sudo QEMU=qemu-system-x86_64 ROS_SETUP=/opt/ros/jazzy/setup.bash \
+  python3 tools/templeos/hw.py TempleOS.ISO [serial turtle rviz e1000]
+```
+All four pass. On the e1000, the `ros2` CLI lists the node, echoes `/chatter`, sees the
+right type hash, calls `/add_two_ints`, runs a `/fibonacci` goal and reads a parameter,
+and the HolyC node hears what `ros2 topic pub` sends it.
+
+![TurtleSim on TempleOS, driven with the arrow keys](images/templeos_turtlesim.png)
+![RvizLite on TempleOS showing a map and base_link](images/templeos_rvizlite.png)
+
+What this turned up (fixed):
+- RvizLite drew with `GrPlot` per pixel: 1 frame a second. It now copies its canvas into a
+  TempleOS bitmap and draws it with one `GrBlot`: 30 frames a second.
+- The RoboClaw driver waited 20 ms for each reply, but while it waits it `Yield`s, and on
+  TempleOS the window manager can take longer than that; late replies then got read as the
+  answers to the next commands. It waits up to 100 ms now (a reply takes ~3 ms on the wire).
+- `#include` paths are relative to the current directory, not to the including file: files
+  that include others start with `Cd(__DIR__);;`.
+
+`tools/templeos/Com.HC` is how the host hears TempleOS: `ComTailStart` hooks TempleOS's
+output chain (`KeyDevAdd`) so whatever is printed also goes out of COM1 as it's printed.

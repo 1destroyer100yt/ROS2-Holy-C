@@ -23,7 +23,7 @@ I64 RosTimeSteadyNs()
 //@host-skip-begin
   //TSC ticks -> ns. F64 keeps full precision for ~1 month of uptime
   //at 3 GHz (TSC < 2^53); good enough until we find a better source.
-  //VERIFY on a real install: GetTSC and cnts.time_stamp_freq.
+  //Checked on TempleOS 5.03: timers, the turtle and DDS run at the right speed.
   return ToI64(ToF64(GetTSC)*1000000000.0/cnts.time_stamp_freq);
 //@host-skip-end
 //@host: return HostNowNs();

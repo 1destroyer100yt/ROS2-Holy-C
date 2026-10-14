@@ -13,6 +13,7 @@
 #   tools/e1000test/run.sh ros2   instead: the ROS demo node (tests/ros2/Demo.HC)
 #     on our stack + e1000 in the guest, and the real ros2 CLI on the host
 #     (tools/ros2test/checks.sh; needs ROS 2: ROS_SETUP=... or ros2 on PATH)
+#   E1000_DEVICE=e1000e ...       the 82574L instead of the 82540EM
 cd "$(dirname "$0")/../.."
 PY=${PYTHON:-python3}
 source tools/guest/lib.sh
@@ -32,7 +33,7 @@ else
 fi
 "$QEMU" -m 256 -display none -no-reboot -serial file:"$tmp/console.txt" \
   -kernel "$VMLINUZ" -initrd "$tmp/initrd.cpio" -append "console=ttyS0 panic=-1 quiet $append" \
-  -netdev tap,id=n0,ifname=rhe0,script=no,downscript=no -device e1000,netdev=n0 &
+  -netdev tap,id=n0,ifname=rhe0,script=no,downscript=no -device ${E1000_DEVICE:-e1000},netdev=n0 &
 qemu=$!
 $PY tools/nettest/dhcp_server.py rhe0 --offer 10.82.0.2 --gw 10.82.0.1 --serve 300 --setup &
 dhcp=$!

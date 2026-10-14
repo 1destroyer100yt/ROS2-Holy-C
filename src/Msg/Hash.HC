@@ -187,7 +187,7 @@ U8 *RosTypeHash(CRosType *t)
 //"RIHS01_..." of a service. rosidl describes a service as a struct of
 //request_message, response_message and event_message, where the event
 //is {service_msgs/ServiceEventInfo info, Request[<=1], Response[<=1]}.
-//VERIFY against a real Jazzy install (messages are checked against rosbags).
+//Checked against a real Jazzy install (ros2 topic info -v; tools/ros2test).
 U8 *RosSrvTypeHash(CRosSrvType *st)
 {
   CRosVec *deps,*refs;
