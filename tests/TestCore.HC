@@ -8,25 +8,25 @@ U0 TestF32()
   RosTestI64("0.1 rounds",RosF64ToF32Bits(0.1),0x3DCCCCCD);
   RosTestI64("+0",RosF64ToF32Bits(0.0),0);
   RosTestI64("-0",RosF64ToF32Bits(RosBitsToF64(0x8000000000000000)),0x80000000);
-  RosTestI64("max float",RosF64ToF32Bits(3.4028234663852886e38),0x7F7FFFFF);
-  RosTestI64("overflow -> inf",RosF64ToF32Bits(1e39),0x7F800000);
-  RosTestI64("-overflow -> -inf",RosF64ToF32Bits(-1e39),0xFF800000);
-  RosTestI64("rounds up to inf",RosF64ToF32Bits(3.4028235677973366e38),0x7F800000);
-  RosTestI64("smallest subnormal",RosF64ToF32Bits(1.401298464324817e-45),1);
-  RosTestI64("half smallest -> 0 (ties even)",RosF64ToF32Bits(7.006492321624085e-46),0);
-  RosTestI64("tiny -> 0",RosF64ToF32Bits(1e-50),0);
-  RosTestI64("largest subnormal",RosF64ToF32Bits(1.1754942106924411e-38),0x7FFFFF);
-  RosTestI64("smallest normal",RosF64ToF32Bits(1.1754943508222875e-38),0x800000);
+  RosTestI64("max float",RosF64ToF32Bits(RosTestLit("3.4028234663852886e38")),0x7F7FFFFF);
+  RosTestI64("overflow -> inf",RosF64ToF32Bits(RosTestLit("1e39")),0x7F800000);
+  RosTestI64("-overflow -> -inf",RosF64ToF32Bits(RosTestLit("-1e39")),0xFF800000);
+  RosTestI64("rounds up to inf",RosF64ToF32Bits(RosTestLit("3.4028235677973366e38")),0x7F800000);
+  RosTestI64("smallest subnormal",RosF64ToF32Bits(RosTestLit("1.401298464324817e-45")),1);
+  RosTestI64("half smallest -> 0 (ties even)",RosF64ToF32Bits(RosTestLit("7.006492321624085e-46")),0);
+  RosTestI64("tiny -> 0",RosF64ToF32Bits(RosTestLit("1e-50")),0);
+  RosTestI64("largest subnormal",RosF64ToF32Bits(RosTestLit("1.1754942106924411e-38")),0x7FFFFF);
+  RosTestI64("smallest normal",RosF64ToF32Bits(RosTestLit("1.1754943508222875e-38")),0x800000);
   RosTestI64("inf",RosF64ToF32Bits(RosBitsToF64(ROS_F64_INF_BITS)),0x7F800000);
   RosTestTrue("nan stays nan",
 	(RosF64ToF32Bits(RosBitsToF64(ROS_F64_NAN_BITS))&0x7FC00000)==0x7FC00000);
   RosTestF64("back 1.0",RosF32BitsToF64(0x3F800000),1.0,0.0);
-  RosTestF64("back 0.1",RosF32BitsToF64(0x3DCCCCCD),0.10000000149011612,0.0);
-  RosTestF64("back subnormal",RosF32BitsToF64(1),1.401298464324817e-45,0.0);
-  RosTestF64("back -max",RosF32BitsToF64(0xFF7FFFFF),-3.4028234663852886e38,0.0);
+  RosTestF64("back 0.1",RosF32BitsToF64(0x3DCCCCCD),RosTestLit("0.10000000149011612"),0.0);
+  RosTestF64("back subnormal",RosF32BitsToF64(1),RosTestLit("1.401298464324817e-45"),0.0);
+  RosTestF64("back -max",RosF32BitsToF64(0xFF7FFFFF),RosTestLit("-3.4028234663852886e38"),0.0);
   RosTestI64("back inf",RosF64ToBits(RosF32BitsToF64(0x7F800000)),ROS_F64_INF_BITS);
   RosTestI64("back -0",RosF64ToBits(RosF32BitsToF64(0x80000000)),0x8000000000000000);
-  RosTestF64("F32Round",RosF32Round(0.1),0.10000000149011612,0.0);
+  RosTestF64("F32Round",RosF32Round(RosTestLit("0.1")),RosTestLit("0.10000000149011612"),0.0);
 }
 
 U0 TestMem()
@@ -95,6 +95,29 @@ U0 TestVec()
   RosVecDel(v);
 }
 
+//Random F64 bits -> shortest digits (Dtoa) -> RosStrToF64: same bits.
+U0 TestF64RoundTrip()
+{
+  I64 i,bad=0;
+  U64 u;
+  F64 f;
+  CRosStrBuf *sb=RosStrBufNew();
+  for (i=0;i<3000;i++) {
+    u=RandU64()&0x7FFFFFFFFFFFFFFF;
+    if ((u>>52)==0x7FF)
+      u=u>>12;		//not inf/nan: try a small number instead
+    RosStrBufClear(sb);
+    RosStrBufAddF64(sb,RosBitsToF64(u));
+    if (!RosStrToF64(sb->buf,&f) || RosF64ToBits(f)!=u) {
+      if (!bad)
+        Print("     %X -> %s -> %X\n",u,sb->buf,RosF64ToBits(f));
+      bad++;
+    }
+  }
+  RosStrBufDel(sb);
+  RosTestI64("f64 round trips (3000 random)",bad,0);
+}
+
 U0 TestStr()
 {
   CRosStrBuf *sb=RosStrBufNew();
@@ -150,10 +173,24 @@ U0 TestStr()
   RosTestTrue("junk",!RosStrToI64("12a",&n) && !RosStrToI64("",&n) && !RosStrToI64("-",&n));
 
   RosTestTrue("f64 ok",RosStrToF64("3.25",&f));
-  RosTestF64("f64 value",f,3.25,0.0);
-  RosTestTrue("f64 exp",RosStrToF64("-1.5e3",&f) && f==-1500.0);
-  RosTestTrue("f64 neg exp",RosStrToF64("25e-2",&f) && f==0.25);
-  RosTestTrue("f64 0.1",RosStrToF64("0.1",&f) && f==0.1);
+  RosTestI64("f64 value",RosF64ToBits(f),0x400A000000000000);	//3.25
+  RosTestTrue("f64 exp",RosStrToF64("-1.5e3",&f) && RosF64ToBits(f)==0xC097700000000000);
+  RosTestTrue("f64 neg exp",RosStrToF64("25e-2",&f) && RosF64ToBits(f)==0x3FD0000000000000);
+  RosTestTrue("f64 0.1",RosStrToF64("0.1",&f) && RosF64ToBits(f)==0x3FB999999999999A);
+  //correctly rounded, also exactly halfway, at the edges and past 40 digits
+  RosTestI64("exact 9007199254740993",RosF64ToBits(RosTestLit("9007199254740993")),0x4340000000000000);
+  RosTestI64("exact 9007199254740995",RosF64ToBits(RosTestLit("9007199254740995")),0x4340000000000002);
+  RosTestI64("exact 2.4703282292062327e-324",RosF64ToBits(RosTestLit("2.4703282292062327e-324")),0x0);
+  RosTestI64("exact 2.4703282292062328e-324",RosF64ToBits(RosTestLit("2.4703282292062328e-324")),0x1);
+  RosTestI64("exact 1.7976931348623157e308",RosF64ToBits(RosTestLit("1.7976931348623157e308")),0x7FEFFFFFFFFFFFFF);
+  RosTestI64("exact 1.7976931348623158e308",RosF64ToBits(RosTestLit("1.7976931348623158e308")),0x7FEFFFFFFFFFFFFF);
+  RosTestI64("exact 1.7976931348623159e308",RosF64ToBits(RosTestLit("1.7976931348623159e308")),0x7FF0000000000000);
+  RosTestI64("exact 2.2250738585072011e-308",RosF64ToBits(RosTestLit("2.2250738585072011e-308")),0xFFFFFFFFFFFFF);
+  RosTestI64("exact 0.1",RosF64ToBits(RosTestLit("0.1")),0x3FB999999999999A);
+  RosTestI64("exact 123456789012345678901234",RosF64ToBits(RosTestLit("123456789012345678901234567890123456789012345678901234567890e-30")),0x45F8EE90FF6C373E);
+  RosTestI64("exact 1e23",RosF64ToBits(RosTestLit("1e23")),0x44B52D02C7E14AF6);
+  RosTestI64("exact 8.98846567431158e307",RosF64ToBits(RosTestLit("8.98846567431158e307")),0x7FE0000000000000);
+  TestF64RoundTrip();
   RosTestTrue("f64 int",RosStrToF64("7",&f) && f==7.0);
   RosTestTrue("f64 .5",RosStrToF64(".5",&f) && f==0.5);
   RosTestTrue("f64 inf",RosStrToF64("-inf",&f) && RosF64ToBits(f)==0xFFF0000000000000);

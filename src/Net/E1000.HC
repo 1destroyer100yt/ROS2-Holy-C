@@ -195,7 +195,7 @@ I64 E1000Rx(CE1000 *e,U8 *buf,I64 cap)
 //Find and start the card. NULL if there isn't one.
 CRosNetIf *E1000Open()
 {
-  I64 bus,dev,fn,i,bar,addr;
+  I64 bus,dev,fn,i,bar,addr,hi;
   U32 v;
   U8 *p;
   CE1000 *e;
@@ -209,8 +209,10 @@ CRosNetIf *E1000Open()
     return NULL;
   }
   addr=bar&0xFFFFFFF0;
-  if ((bar&6)==4)			//64-bit BAR
-    addr|=PciRead32(bus,dev,fn,0x14)<<32;
+  if ((bar&6)==4) {		//64-bit BAR
+    hi=PciRead32(bus,dev,fn,0x14);	//through an I64: a U32 shifted by 32 is 0 in C
+    addr|=hi<<32;
+  }
   e->mmio=E1000MapBar(addr,0x20000);
   if (!e->mmio) {
     Free(e);

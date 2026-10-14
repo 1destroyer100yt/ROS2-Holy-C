@@ -49,7 +49,8 @@ python3 tools/templeos/run.py TempleOS.ISO 'C:/ROS2-Holy-C/Load.HC'
 `run.py` puts the repo on a FAT32 disk image (`tools/mkdisk`), boots the live CD, mounts
 the image as C:, compiles the file inside `try`/`catch`, and prints the terminal's text,
 which TempleOS sends out of COM1. Extra arguments are commands to run afterwards, for
-example `'RosTestsRun;'` with `C:/ROS2-Holy-C/tests/Run.HC`. `tools/templeos/ctl.py`
+example `'ros_test_tmp="C:/Tmp";RosTestsRun;'` with `C:/ROS2-Holy-C/tests/Run.HC`
+(the tests write bag files; on the live CD `~` is the read-only CD). `tools/templeos/ctl.py`
 takes screenshots of, and types into, a run in progress.
 
 Things the real compiler taught us (the linter in `tools/hctest` now checks them):
@@ -58,6 +59,13 @@ Things the real compiler taught us (the linter in `tools/hctest` now checks them
   variable first.
 - `reg` and `noreg` are keywords (register variables), so they can't be names.
 - TempleOS's FAT32 driver keeps at most 25 characters of a long file name.
+- `eps` (like `pi` and `inf`) is a TempleOS `#define`, so it can't be a name.
+- `MemCpy` copies forward a byte at a time; to move bytes up within the same buffer use
+  `RosMemMove` (the Linux build now stops on such a `MemCpy`).
+- The compiler turns a decimal literal into `digits*Pow10I64(-k)`, and TempleOS's powers
+  of ten come from `Pow10` (x87 exp/log), so literals like `0.0001` or `3.25` can be off in
+  the last bits. `RosStrToF64` doesn't use them: it is exact (big integers), and tests that
+  need exact values use `RosTestLit("0.0001")`.
 
 Still only checked on Linux (through `tools/hctest`, HolyC translated to C): running the
 code. Lines marked `VERIFY` in the source are the TempleOS-only parts (drawing, keyboard,

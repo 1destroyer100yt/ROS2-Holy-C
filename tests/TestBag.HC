@@ -4,7 +4,7 @@ U8 *TestBagDir(U8 *name)	//where test bags go
 {
   U8 *s=NULL;
 //@host-skip-begin
-  s=MStrPrint("~/Tmp/%s",name);
+  s=MStrPrint("%s/%s",ros_test_tmp,name);
 //@host-skip-end
 //@host: s=MStrPrint("%s/%s",getenv("TMPDIR") ? getenv("TMPDIR") : "/tmp",name);
   return s;

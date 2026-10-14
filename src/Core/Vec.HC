@@ -104,7 +104,7 @@ Bool RosVecInsert(CRosVec *v,I64 i,U8 *elem)
     return FALSE;
   RosVecPush(v,NULL);
   src=v->data+i*v->elem_size;
-  MemCpy(src+v->elem_size,src,(v->len-1-i)*v->elem_size);
+  RosMemMove(src+v->elem_size,src,(v->len-1-i)*v->elem_size);
   if (elem)
     MemCpy(src,elem,v->elem_size);
   else

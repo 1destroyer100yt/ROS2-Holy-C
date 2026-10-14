@@ -9,6 +9,7 @@
 I64 ros_test_pass=0;
 I64 ros_test_fail=0;
 U8 *ros_test_group="";
+U8 *ros_test_tmp="~/Tmp";	//scratch files; on the live CD ~ is read-only: "C:/Tmp"
 
 U0 RosTestGroup(U8 *name)
 {
@@ -37,6 +38,16 @@ U0 RosTestI64(U8 *what,I64 got,I64 want)
     RosTestFailed(what);
     Print("     got %d (0x%X), want %d (0x%X)\n",got,got,want,want);
   }
+}
+
+//The exact F64 for a decimal string. Use it instead of a literal when a
+//test needs the last bit right: TempleOS's compiler turns literals into
+//digits*Pow10I64(-k), which is often an ulp or two off.
+F64 RosTestLit(U8 *s)
+{
+  F64 f=0.0;
+  RosStrToF64(s,&f);
+  return f;
 }
 
 U0 RosTestF64(U8 *what,F64 got,F64 want,F64 tol)

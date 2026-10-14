@@ -253,12 +253,15 @@ Bool RosStrToI64(U8 *s,I64 *out)
 }
 
 //Parse a decimal floating point number: [-+]digits[.digits][e[-+]digits],
-//also inf/nan. FALSE on bad input.
+//also inf/nan. FALSE on bad input. Correctly rounded (RosBigDecToF64)
+//for up to 40 significant digits; more only decide the rounding.
 Bool RosStrToF64(U8 *s,F64 *out)
 {
-  F64 v=0.0,scale=1.0,p10=10.0;
-  Bool neg=FALSE,any=FALSE,eneg=FALSE;
-  I64 e=0,frac=0;
+  F64 v=0.0;
+  Bool neg=FALSE,any=FALSE,eneg=FALSE,more=FALSE;
+  I64 e=0,e10=0,nd=0,d;
+  CRosBig m,t;
+  RosBigSet(&m,0);
   while (RosIsSpace(*s))
     s++;
   if (*s=='-' || *s=='+') {
@@ -274,15 +277,36 @@ Bool RosStrToF64(U8 *s,F64 *out)
     any=TRUE;
   } else {
     while (*s>='0' && *s<='9') {
-      v=v*10.0+(*s-'0');
+      d=*s-'0';
+      if (nd<40) {
+        if (nd || d) {
+          RosBigMulSmall(&m,10);
+          RosBigSet(&t,d);
+          RosBigAdd(&m,&m,&t);
+          nd++;
+        }
+      } else {
+        e10++;
+        if (d)
+          more=TRUE;
+      }
       s++;
       any=TRUE;
     }
     if (*s=='.') {
       s++;
       while (*s>='0' && *s<='9') {
-        v=v*10.0+(*s-'0');
-        frac++;
+        d=*s-'0';
+        if (nd<40) {
+          if (nd || d) {
+            RosBigMulSmall(&m,10);
+            RosBigSet(&t,d);
+            RosBigAdd(&m,&m,&t);
+            nd++;
+          }
+          e10--;
+        } else if (d)
+          more=TRUE;
         s++;
         any=TRUE;
       }
@@ -303,25 +327,21 @@ Bool RosStrToF64(U8 *s,F64 *out)
     }
     if (eneg)
       e=-e;
-    e-=frac;
-    if (e<0) {
-      e=-e;
-      while (e) {
-        if (e&1)
-          scale*=p10;
-        p10*=p10;
-        e>>=1;
-      }
-      v=v/scale;
-    } else {
-      while (e) {
-        if (e&1)
-          scale*=p10;
-        p10*=p10;
-        e>>=1;
-      }
-      v=v*scale;
+    e10+=e;
+    if (more) {		//digits past the 40th: just "a bit more" for rounding
+      RosBigMulSmall(&m,10);
+      RosBigSet(&t,1);
+      RosBigAdd(&m,&m,&t);
+      e10--;
     }
+    if (!m.n)
+      v=0.0;
+    else if (e10+nd>310)
+      v=RosBitsToF64(ROS_F64_INF_BITS);
+    else if (e10+nd< -330)
+      v=0.0;
+    else
+      v=RosBigDecToF64(&m,e10);
   }
   while (RosIsSpace(*s))
     s++;

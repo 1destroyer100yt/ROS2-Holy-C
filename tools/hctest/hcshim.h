@@ -46,7 +46,15 @@ static U8 *MAlloc(I64 n) { return malloc(n ? n : 1); }
 static U8 *CAlloc(I64 n) { return calloc(1, n ? n : 1); }
 static U0 Free(void *p) { free(p); }
 /* n == 0 with a NULL pointer is fine in HolyC, undefined in C: skip it */
-static U8 *MemCpy(void *d, const void *s, I64 n) { return n ? memmove(d, s, n) : d; }
+/* TempleOS's MemCpy is a forward REP MOVSB: an overlapping copy to a higher
+   address repeats the first bytes. Catch that here (use RosMemMove). */
+static U8 *MemCpy(void *d, const void *s, I64 n) {
+  if (n > 0 && (U8 *)d > (const U8 *)s && (U8 *)d < (const U8 *)s + n) {
+    fprintf(stderr, "MemCpy: overlapping copy upward (TempleOS would smear it) - use RosMemMove\n");
+    abort();
+  }
+  return n ? memmove(d, s, n) : d;
+}
 static U8 *MemSet(void *d, I64 v, I64 n) { return n ? memset(d, (int)v, n) : d; }
 static I64 MemCmp(const void *a, const void *b, I64 n) { return n ? memcmp(a, b, n) : 0; }
 static I64 StrLen(const U8 *s) { return s ? (I64)strlen((const char *)s) : 0; }

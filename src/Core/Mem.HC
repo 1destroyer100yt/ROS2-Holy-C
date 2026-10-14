@@ -11,6 +11,24 @@
 //  RosPoolFree(p,b);
 //  RosPoolDel(p);
 
+//MemCpy that works when the two ranges overlap. TempleOS's MemCpy
+//copies forward a byte at a time, so copying to a higher address that
+//overlaps the source repeats the first bytes; this copies backward then.
+U8 *RosMemMove(U8 *dst,U8 *src,I64 n)
+{
+  I64 i;
+  if (n<=0 || dst==src)
+    return dst;
+  if (dst<src || dst>=src+n)
+    return MemCpy(dst,src,n);
+  i=n;
+  while (i>0) {
+    i--;
+    dst[i]=src[i];
+  }
+  return dst;
+}
+
 class CRosPoolChunk
 {
   CRosPoolChunk *next;

@@ -165,6 +165,79 @@ I64 RosBigCmpSum(CRosBig *a,CRosBig *b,CRosBig *c)
   return RosBigCmp(&t,c);
 }
 
+//Bits in a (0 for 0).
+I64 RosBigBits(CRosBig *a)
+{
+  I64 b;
+  U64 top;
+  if (!a->n)
+    return 0;
+  b=(a->n-1)*32;
+  top=a->d[a->n-1];
+  while (top) {
+    b++;
+    top=top>>1;
+  }
+  return b;
+}
+
+//The F64 nearest to m*10^e10, ties to even: exact, with no F64 math
+//(TempleOS's own decimal conversion goes through Pow10, which is off
+//in the last bits). m is at most ~140 bits; e10 in -400..310.
+F64 RosBigDecToF64(CRosBig *m,I64 e10)
+{
+  CRosBig num,den,t;
+  I64 k,b,e2;
+  U64 q=0,mant,one=1;
+  Bool sticky;
+  if (!m->n)
+    return 0.0;
+  RosBigCopy(&num,m);
+  RosBigSet(&den,1);
+  if (e10>=0)
+    RosBigMulPow10(&num,e10);
+  else
+    RosBigMulPow10(&den,-e10);
+  //num/den = q*2^-k with q in [2^53,2^55): 53 bits, a round bit, maybe one more
+  k=54-(RosBigBits(&num)-RosBigBits(&den));
+  if (k>1075)
+    k=1075;		//subnormal: no more bits than 2^-1074 allows
+  if (k>0)
+    RosBigShl(&num,k);
+  else if (k<0)
+    RosBigShl(&den,-k);
+  b=55;
+  while (b>=0) {	//q=num/den, one bit at a time
+    RosBigCopy(&t,&den);
+    RosBigShl(&t,b);
+    if (RosBigCmp(&num,&t)>=0) {
+      RosBigSub(&num,&t);
+      q|=one<<b;
+    }
+    b--;
+  }
+  sticky=num.n!=0;
+  while (q>>54) {
+    if (q&1)
+      sticky=TRUE;
+    q=q>>1;
+    k--;
+  }
+  mant=q>>1;
+  if ((q&1) && (sticky || (mant&1)))
+    mant++;
+  e2=53-k;
+  if (mant>>53) {
+    mant=mant>>1;
+    e2++;
+  }
+  if (!(mant>>52))	//subnormal (k is 1075): the bits are the mantissa
+    return RosBitsToF64(mant);
+  if (e2+1023>=0x7FF)
+    return RosBitsToF64(ROS_F64_INF_BITS);
+  return RosBitsToF64(((e2+1023)<<52)|(mant&0xFFFFFFFFFFFFF));
+}
+
 //Shortest digits of x (x>0, finite) into dig (up to 17 chars + NUL).
 //Returns the number of digits; *k is the decimal exponent so that
 //x = 0.DIGITS * 10^k.

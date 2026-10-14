@@ -16,7 +16,9 @@ U0 TestPlugin()
   CRosVec *v;
   RosTestGroup("Plugins");
   PluginDescribe("polygon_plugins::Square","polygon_base::RegularPolygon","A square.");
-  RosTestTrue("declared, not loaded",!PluginIsLoaded("polygon_plugins::Square"));
+  //(on TempleOS #include already ran Polygons.HC's PluginInit_polygons)
+  PluginDescribe("test_plugins::OnlyDeclared","test_base::Nothing","Never registered.");
+  RosTestTrue("declared, not loaded",!PluginIsLoaded("test_plugins::OnlyDeclared"));
   PluginInit_polygons();
   RosTestTrue("loaded",PluginIsLoaded("polygon_plugins::Square") &&
 	PluginIsLoaded("polygon_plugins::Triangle"));
