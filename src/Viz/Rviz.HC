@@ -501,24 +501,20 @@ U0 RosRvizRender(CRosRviz *rv)
 }
 
 //@host-skip-begin
-CRosRviz *ros_rviz_shown=NULL;
+CDC *ros_rviz_img=NULL;	//the last frame, as a TempleOS bitmap
 
 U0 RosRvizDrawIt(CTask *task,CDC *dc)
 {
-  CRosRviz *rv=ros_rviz_shown;
-  I64 x,y,w,h;
-  U8 *row;
-  if (!rv)
-    return;
-  w=MinI64(rv->cv->w,task->pix_width);
-  h=MinI64(rv->cv->h,task->pix_height);
-  for (y=0;y<h;y++) {	//VERIFY: copying into dc->body would be faster
-    row=rv->cv->px+y*rv->cv->w;
-    for (x=0;x<w;x++) {
-      dc->color=row[x];
-      GrPlot(dc,x,y);
-    }
-  }
+  if (ros_rviz_img)
+    GrBlot(dc,0,0,ros_rviz_img);	//one blit (GrPlot per pixel ran at 1 FPS)
+}
+
+//Copy the canvas into the bitmap the window draws: both are 16-color numbers.
+U0 RosRvizToImg(CRosRviz *rv,CDC *img)
+{
+  I64 y;
+  for (y=0;y<rv->cv->h;y++)
+    MemCpy(img->body+y*img->width_internal,rv->cv->px+y*rv->cv->w,rv->cv->w);
 }
 
 //RvizLite in this task's window, showing the usual topics in frame
@@ -530,6 +526,7 @@ U0 RvizLite(U8 *fixed)
   CRosRviz *rv=RosRvizNew(n,fixed,TEXT_COLS*8,(TEXT_ROWS-2)*8);
   I64 ch,sc,next=0;
   F64 step;
+  CDC *img;
   RosRvizAdd(rv,ROS_RVIZ_MAP,"/map");
   RosRvizAdd(rv,ROS_RVIZ_SCAN,"/scan");
   RosRvizAdd(rv,ROS_RVIZ_PATH,"/plan");
@@ -537,8 +534,10 @@ U0 RvizLite(U8 *fixed)
   RosRvizAdd(rv,ROS_RVIZ_POSE,"/goal_pose");
   RosRvizAdd(rv,ROS_RVIZ_MARKER,"/visualization_marker");
   RosRvizAdd(rv,ROS_RVIZ_MARKERS,"/visualization_marker_array");
+  img=DCNew(rv->cv->w,rv->cv->h);
+  img->flags|=DCF_NO_TRANSPARENTS;
   ros_ok=TRUE;
-  ros_rviz_shown=rv;
+  ros_rviz_img=img;
   DocClear;
   Fs->draw_it=&RosRvizDrawIt;
   while (ros_ok) {
@@ -562,11 +561,13 @@ U0 RvizLite(U8 *fixed)
     RosExecSpinOnce(RosNodeExec(n),10*ROS_NS_PER_MS);
     if (RosTimeSteadyNs()>=next) {	//10 frames a second
       RosRvizRender(rv);
+      RosRvizToImg(rv,img);
       next=RosTimeSteadyNs()+100*ROS_NS_PER_MS;
     }
   }
   Fs->draw_it=NULL;
-  ros_rviz_shown=NULL;
+  ros_rviz_img=NULL;
+  DCDel(img);
   RosRvizDel(rv);
   RosExecDel(n->exec);
   RosNodeDel(n);

@@ -1,7 +1,7 @@
 //Send text out of COM1 (0x3F8) so a script outside TempleOS can read it
 //(tools/templeos/run.py: QEMU writes COM1 to a file).
 
-I64 com_lock=0;	//one writer at a time (ComTailTask runs alongside)
+I64 com_lock=0;	//one writer at a time (tasks print alongside)
 
 U0 ComPutS(U8 *s)
 {
@@ -28,41 +28,37 @@ U0 ComDump()
   Free(s);
 }
 
-//---- live: a task that sends the terminal's new text out of COM1 as it
-//appears (tools/templeos/hw.py waits for READY and RESULT lines).
-CTask *com_tail_watch=NULL,*com_tail_task=NULL;
-I64 com_tail_sent=0;
+//---- live: everything printed also goes out of COM1 as it's printed
+//(tools/templeos/hw.py waits for READY and RESULT lines). A hook early in
+//TempleOS's output chain (KeyDevAdd) that passes everything on.
+CKeyDevEntry *com_echo=NULL;
 
-U0 ComTailTask(U8 *data)
+Bool ComEchoPutKey(I64 ch,I64 sc)
 {
-  U8 *s;
-  I64 n;
-  while (TRUE) {
-    s=DocSave(DocPut(com_tail_watch),NULL);
-    n=StrLen(s);
-    if (n<com_tail_sent)	//cleared: start over
-      com_tail_sent=0;
-    if (n>com_tail_sent) {
-      ComPutS(s+com_tail_sent);
-      com_tail_sent=n;
-    }
-    Free(s);
-    Sleep(250);
+  U8 buf[2];
+  if (!sc && ch>0 && ch<256) {	//printed, not a key going to the editor
+    buf[0]=ch;
+    buf[1]=0;
+    ComPutS(buf);
   }
+  return FALSE;
+}
+
+Bool ComEchoPutS(U8 *st)
+{
+  ComPutS(st);
+  return FALSE;
 }
 
 U0 ComTailStart()
 {
-  U8 *s=DocSave(DocPut(Fs),NULL);
-  com_tail_watch=Fs;
-  com_tail_sent=StrLen(s);
-  Free(s);
-  com_tail_task=Spawn(&ComTailTask,NULL,"ComTail");
+  if (!com_echo)
+    com_echo=KeyDevAdd(&ComEchoPutKey,&ComEchoPutS,0x10000000);
 }
 
 U0 ComTailStop()
 {
-  if (com_tail_task)
-    Kill(com_tail_task);
-  com_tail_task=NULL;
+  if (com_echo)
+    KeyDevRem(com_echo);
+  com_echo=NULL;
 }
