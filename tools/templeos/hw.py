@@ -47,14 +47,19 @@ def colors(vm, box=None):
     parts = s.split(b"\n", 3)
     w, h = (int(v) for v in parts[1].split())
     px = parts[3]
-    idx = {c: i for i, c in enumerate(PALETTE)}
+    near = {}      # QEMU's VGA has 6-bit colors (0xA8, not 0xAA): take the nearest
+
+    def index(rgb):
+        if rgb not in near:
+            near[rgb] = min(range(16), key=lambda i: sum((a - b) ** 2 for a, b in zip(rgb, PALETTE[i])))
+        return near[rgb]
     x0, y0, x1, y1 = box or (0, 0, w, h)
     rows = []
     for y in range(y0, y1):
         row = []
         for x in range(x0, x1):
             o = (y * w + x) * 3
-            row.append(idx.get(tuple(px[o:o + 3]), -1))
+            row.append(index(tuple(px[o:o + 3])))
         rows.append(row)
     return rows
 
@@ -177,7 +182,7 @@ class Run:
         if self.wait_serial("@@RVIZ@@", 300, at) < 0:
             return False, "RvizLite didn't start"
         time.sleep(20)
-        rows = colors(self.vm)
+        rows = colors(self.vm, (0, 16, 395, 480))   # left of TempleOS's AutoComplete window (light gray too)
         self.vm.screenshot(os.path.join(self.shots, "rviz.png"))
         self.vm.key("esc")
         free, wall = count(rows, LTGRAY), count(rows, BLACK)
@@ -220,10 +225,7 @@ class Run:
             if "serial" in self.parts:
                 i = self.wait_serial("@@SERIAL_DONE@@", 600, at)
                 s = self.vm.serial()[at:i if i > 0 else None]
-                line = [ln for ln in s.splitlines() if "RESULT holyc" in ln]
-                good = bool(line) and "hw_errors=0" in line[-1] and line[-1].rstrip().endswith("-> 1")
-                self.ok["serial"] = (good, (line[-1] if line else "no RESULT line") + "; sim: " +
-                                     self.log("sim.txt").strip().replace("\n", " "))
+                self.serial_out = s     # judged at the end, when the simulator has said its part
                 at = max(at, i)
             if "turtle" in self.parts:
                 self.ok["turtle"] = self.turtle(at)
@@ -249,6 +251,12 @@ class Run:
                     p.wait(10)
                 except subprocess.TimeoutExpired:
                     p.kill()
+        if "serial" in self.parts:
+            line = [ln for ln in getattr(self, "serial_out", "").splitlines() if "RESULT holyc" in ln]
+            sim = self.log("sim.txt").strip().replace("\n", " ")
+            good = (bool(line) and "hw_errors=0" in line[-1] and line[-1].rstrip().endswith("-> 1")
+                    and "bad_crc=0" in sim)
+            self.ok["serial"] = (good, (line[-1].strip() if line else "no RESULT line") + "; " + sim)
         bad = 0
         for name in self.parts:
             good, why = self.ok.get(name, (False, "didn't run"))
