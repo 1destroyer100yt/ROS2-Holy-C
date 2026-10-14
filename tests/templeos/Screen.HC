@@ -2,6 +2,7 @@
 //RvizLite draw in the shell's window; hw.py drives them with keys over
 //QEMU and reads the pixels of screenshots.
 
+Cd(__DIR__);;
 #include "../../Load.HC"
 
 //@host-skip-begin

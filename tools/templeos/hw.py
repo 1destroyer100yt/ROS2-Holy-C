@@ -88,6 +88,8 @@ class Run:
             i = s.find(text, start)
             if i >= 0:
                 return i
+            if "@@EXCEPTION@@" in s[start:]:     # TempleOS gave up: no point waiting
+                return -1
             time.sleep(1)
         return -1
 
