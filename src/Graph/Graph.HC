@@ -220,7 +220,8 @@ CRosGraph *RosGraph()
 
 U0 RosGraphLock()
 {
-  RosLockGet(&RosGraph()->lock);
+  CRosGraph *g=RosGraph();	//not &RosGraph()->lock: in HolyC &RosGraph is the function's address
+  RosLockGet(&g->lock);
 }
 
 U0 RosGraphUnlock()

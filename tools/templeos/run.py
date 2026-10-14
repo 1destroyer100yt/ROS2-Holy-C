@@ -5,7 +5,7 @@
 
 Boots the ISO (live CD, no install) with a FAT32 disk image of the repo
 (tools/mkdisk) as C:. A generated C:/Auto/Auto.HC compiles the file with
-ExeFile (which catches compiler errors), runs the extra commands, then
+ExeFile2 inside try/catch, runs the extra commands, then
 sends the terminal's text out of COM1 (tools/templeos/Com.HC); this
 script prints it (QEMU writes COM1 to a file). Screenshots go to $SHOTS (default /tmp).
 Environment: QEMU, BOOT_WAIT (s, default 40), TIMEOUT (s), CPUS.
@@ -38,10 +38,10 @@ def main():
     os.mkdir(auto)
     with open(os.path.join(auto, "Auto.HC"), "w") as fh:
         fh.write('#include "C:/ROS2-Holy-C/tools/templeos/Com.HC"\n')
-        fh.write('ExeFile("%s");\n' % inc)
+        fh.write('try {\n  ExeFile2("%s");\n' % inc)     # ExeFile2: errors come here
         for c in cmds:
-            fh.write('ExePutS("%s");\n' % c.replace("\\", "\\\\").replace('"', '\\"'))
-        fh.write("ComDump;\n")
+            fh.write('  ExePutS2("%s");\n' % c.replace("\\", "\\\\").replace('"', '\\"'))
+        fh.write('} catch {\n  "\\n@@EXCEPTION@@\\n";\n  Fs->catch_except=TRUE;\n}\nComDump;\n')
     subprocess.run([sys.executable, os.path.join(REPO, "tools", "mkdisk", "mkdisk.py"), img, REPO, auto],
                    check=True, stdout=subprocess.DEVNULL)
     vm = Vm(iso=iso, disk=img, mem=1024, cpus=int(os.environ.get("CPUS", "1")))
