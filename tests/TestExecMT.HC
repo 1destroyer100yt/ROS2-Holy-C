@@ -37,19 +37,18 @@ U0 TestMTOnMsg(CMsg_std_msgs_Int64 *m,CTestMTSub *s)
   RosLockPut(&mt->lock);
 }
 
-U0 TestExecMT()
+//Publish the workload, then spin it with threads threads. How long it took.
+I64 TestMTRun(CTestMT *mt,I64 threads)
 {
   CRosNode *nodes[MT_NODES],*pn;
   CRosPub *pubs[MT_NODES];
   CTestMTSub subs[MT_NODES*2];
-  CTestMT mt;
   CRosQoS q;
   CMsg_std_msgs_Int64 m;
   U8 *name;
   I64 i,j,t0,took;
-  RosTestGroup("Multi-threaded executor");
-  MemSet(&mt,0,sizeof(CTestMT));
-  mt.e=RosExecNew();
+  MemSet(mt,0,sizeof(CTestMT));
+  mt->e=RosExecNew();
   RosQoSDefault(&q);
   q.depth=1000;
   pn=RosNodeNew("mt_pub",NULL);
@@ -57,11 +56,11 @@ U0 TestExecMT()
     name=MStrPrint("mt_node%d",i);
     nodes[i]=RosNodeNew(name,NULL);
     Free(name);
-    RosExecAdd(mt.e,nodes[i]);
+    RosExecAdd(mt->e,nodes[i]);
     name=MStrPrint("mt_topic%d",i);
     pubs[i]=RosPubNew(pn,name,ros_t_std_msgs_Int64,&q);
     for (j=0;j<2;j++) {	//two subscriptions per node: they must take turns
-      subs[i*2+j].mt=&mt;
+      subs[i*2+j].mt=mt;
       subs[i*2+j].node=i;
       RosSubNew(nodes[i],name,ros_t_std_msgs_Int64,&q,&TestMTOnMsg,&subs[i*2+j]);
     }
@@ -73,15 +72,31 @@ U0 TestExecMT()
       RosPublish(pubs[i],&m);
     }
   t0=RosTimeSteadyNs();
-  RosExecSpinMT(mt.e,MT_NODES);
+  RosExecSpinMT(mt->e,threads);
   took=RosTimeSteadyNs()-t0;
-  RosTestI64("every callback ran",mt.done,MT_NODES*MT_PER_NODE*2);
-  RosTestI64("one callback per node at a time",mt.overlap,0);
-  RosTestTrue("nodes ran in parallel",mt.max_inside>=2);
-  RosTestTrue("faster than one thread",took<MT_NODES*MT_PER_NODE*2*2*ROS_NS_PER_MS*3/4);
-  RosTestI64("workers finished",mt.e->workers,0);
   for (i=0;i<MT_NODES;i++)
     RosNodeDel(nodes[i]);
   RosNodeDel(pn);
+  return took;
+}
+
+U0 TestExecMT()
+{
+  CTestMT mt;
+  I64 one,many;
+  RosTestGroup("Multi-threaded executor");
+  //the same work on one thread first: what a sleep really takes differs
+  //(TempleOS sleeps in whole timer ticks: 2 ms is ~3 ms there)
+  one=TestMTRun(&mt,1);
+  RosTestI64("one thread: every callback ran",mt.done,MT_NODES*MT_PER_NODE*2);
+  RosExecDel(mt.e);
+  many=TestMTRun(&mt,MT_NODES);
+  RosTestI64("every callback ran",mt.done,MT_NODES*MT_PER_NODE*2);
+  RosTestI64("one callback per node at a time",mt.overlap,0);
+  RosTestTrue("nodes ran in parallel",mt.max_inside>=2);
+  if (many>=one*3/4)
+    Print("     %d threads took %d ms, one thread %d ms\n",MT_NODES,many/ROS_NS_PER_MS,one/ROS_NS_PER_MS);
+  RosTestTrue("faster than one thread",many<one*3/4);
+  RosTestI64("workers finished",mt.e->workers,0);
   RosExecDel(mt.e);
 }
