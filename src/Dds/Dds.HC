@@ -520,7 +520,7 @@ U0 RtpsOnAckNack(CRtpsPart *pt,CRtpsWriter *w,CRtpsReaderProxy *rp,I64 base,I64 
     if (!(i%32))
       word=RtpsRN(&in,4);
     if (!(word&(1<<(31-i%32))))
-      continue;
+      goto next_dds_1;
     s=base+i;
     c=RtpsWriterFind(w,s);
     if (c) {
@@ -531,6 +531,7 @@ U0 RtpsOnAckNack(CRtpsPart *pt,CRtpsWriter *w,CRtpsReaderProxy *rp,I64 base,I64 
       RtpsSendChange(pt,w,rp,c);
     } else if (!gap_start)
       gap_start=s;
+    next_dds_1:;
   }
   if (gap_start)
     RtpsSendGap(pt,w,rp,gap_start,base+nbits);
@@ -1249,13 +1250,13 @@ U0 RtpsOnDataSub(CRtpsPart *pt,CRtpsCtx *x,U8 *body,I64 n,I64 flags,Bool frag)
   for (i=0;i<pt->readers->len;i++) {
     r=RosVecGetI64(pt->readers,i);
     if (rid!=RTPS_EID_UNKNOWN && rid!=r->guid.eid)
-      continue;
+      goto next_dds_2;
     wp=RtpsReaderProxyFor(r,x->src,wid);
     if (!wp)
-      continue;
+      goto next_dds_2;
     if (frag) {
       if (total<=0 || total>64*1024*1024 || fsize<=0 || sn<wp->expected)
-        continue;
+        goto next_dds_2;
       if (wp->frag_seq!=sn || wp->frag_total!=total) {
         Free(wp->frag_buf);
         Free(wp->frag_have);
@@ -1272,7 +1273,7 @@ U0 RtpsOnDataSub(CRtpsPart *pt,CRtpsCtx *x,U8 *body,I64 n,I64 flags,Bool frag)
         if (fstart-1+k>=wp->frag_n || off>=total)
           break;
         if (wp->frag_have[fstart-1+k])
-          continue;
+          goto next_dds_3;
         if (off+wp->frag_size<=total) {
           if ((k+1)*wp->frag_size>len)
             break;
@@ -1284,12 +1285,13 @@ U0 RtpsOnDataSub(CRtpsPart *pt,CRtpsCtx *x,U8 *body,I64 n,I64 flags,Bool frag)
         }
         wp->frag_have[fstart-1+k]=1;
         wp->frag_got++;
+        next_dds_3:;
       }
       if (ros_dds_debug)
         Print("frag: seq %d start %d count %d size %d total %d got %d/%d expected %d\n",
 	      sn,fstart,fcount,fsize,total,wp->frag_got,wp->frag_n,wp->expected);
       if (wp->frag_got<wp->frag_n)
-        continue;
+        goto next_dds_2;
       c=CAlloc(sizeof(CRtpsChange));
       MemCpy(c,&base,sizeof(CRtpsChange));
       c->data=wp->frag_buf;
@@ -1299,7 +1301,7 @@ U0 RtpsOnDataSub(CRtpsPart *pt,CRtpsCtx *x,U8 *body,I64 n,I64 flags,Bool frag)
       wp->frag_have=NULL;
       wp->frag_seq=0;
       RtpsOnChange(r,wp,c);
-      continue;
+      goto next_dds_2;
     }
     c=CAlloc(sizeof(CRtpsChange));
     MemCpy(c,&base,sizeof(CRtpsChange));
@@ -1309,6 +1311,7 @@ U0 RtpsOnDataSub(CRtpsPart *pt,CRtpsCtx *x,U8 *body,I64 n,I64 flags,Bool frag)
       c->len=len;
     }
     RtpsOnChange(r,wp,c);
+    next_dds_2:;
   }
 }
 
@@ -1329,10 +1332,10 @@ U0 RtpsOnHeartbeatSub(CRtpsPart *pt,CRtpsCtx *x,U8 *body,I64 n,I64 flags)
   for (i=0;i<pt->readers->len;i++) {
     r=RosVecGetI64(pt->readers,i);
     if (rid!=RTPS_EID_UNKNOWN && rid!=r->guid.eid)
-      continue;
+      goto next_dds_4;
     wp=RtpsReaderProxyFor(r,x->src,wid);
     if (!wp || !wp->reliable || count<=wp->hb_count)
-      continue;
+      goto next_dds_4;
     wp->hb_count=count;
     if (!wp->expected)
       wp->expected=first;
@@ -1344,6 +1347,7 @@ U0 RtpsOnHeartbeatSub(CRtpsPart *pt,CRtpsCtx *x,U8 *body,I64 n,I64 flags)
       RtpsSendAckNack(pt,r,wp,last);
     if (wp->frag_seq && wp->frag_seq<=last)
       RtpsSendNackFrag(pt,r,wp);
+    next_dds_4:;
   }
 }
 
@@ -1362,10 +1366,11 @@ U0 RtpsOnHeartbeatFragSub(CRtpsPart *pt,CRtpsCtx *x,U8 *body,I64 n,I64 flags)
   for (i=0;i<pt->readers->len;i++) {
     r=RosVecGetI64(pt->readers,i);
     if (rid!=RTPS_EID_UNKNOWN && rid!=r->guid.eid)
-      continue;
+      goto next_dds_5;
     wp=RtpsReaderProxyFor(r,x->src,wid);
     if (wp && wp->frag_seq==sn)
       RtpsSendNackFrag(pt,r,wp);
+    next_dds_5:;
   }
 }
 
@@ -1395,11 +1400,11 @@ U0 RtpsOnNackFragSub(CRtpsPart *pt,CRtpsCtx *x,U8 *body,I64 n,I64 flags)
   for (i=0;i<pt->writers->len;i++) {
     w=RosVecGetI64(pt->writers,i);
     if (w->guid.eid!=wid)
-      continue;
+      goto next_dds_6;
     rp=RtpsWriterProxyFor(w,&g);
     c=RtpsWriterFind(w,sn);
     if (!rp || !c)
-      continue;
+      goto next_dds_6;
     nf=RtpsFragCount(c);
     RtpsInInit(&bin,bits,(nbits+31)/32*4,!(flags&1));
     for (j=0;j<nbits;j++) {
@@ -1408,6 +1413,7 @@ U0 RtpsOnNackFragSub(CRtpsPart *pt,CRtpsCtx *x,U8 *body,I64 n,I64 flags)
       if ((word&(1<<(31-j%32))) && base-1+j<nf)
         RtpsSendFrag(pt,w,rp,c,base-1+j);
     }
+    next_dds_6:;
   }
 }
 
@@ -1435,10 +1441,11 @@ U0 RtpsOnAckNackSub(CRtpsPart *pt,CRtpsCtx *x,U8 *body,I64 n,I64 flags)
   for (i=0;i<pt->writers->len;i++) {
     w=RosVecGetI64(pt->writers,i);
     if (w->guid.eid!=wid)
-      continue;
+      goto next_dds_7;
     rp=RtpsWriterProxyFor(w,&g);
     if (rp)
       RtpsOnAckNack(pt,w,rp,base,nbits,bits,!(flags&1),count);
+    next_dds_7:;
   }
 }
 
@@ -1463,10 +1470,10 @@ U0 RtpsOnGapSub(CRtpsPart *pt,CRtpsCtx *x,U8 *body,I64 n,I64 flags)
   for (i=0;i<pt->readers->len;i++) {
     r=RosVecGetI64(pt->readers,i);
     if (rid!=RTPS_EID_UNKNOWN && rid!=r->guid.eid)
-      continue;
+      goto next_dds_8;
     wp=RtpsReaderProxyFor(r,x->src,wid);
     if (!wp)
-      continue;
+      goto next_dds_8;
     if (!wp->expected)
       wp->expected=start;
     if (start<=wp->expected && base>wp->expected)
@@ -1479,6 +1486,7 @@ U0 RtpsOnGapSub(CRtpsPart *pt,CRtpsCtx *x,U8 *body,I64 n,I64 flags)
         wp->expected++;
     }
     RtpsDrain(r,wp);
+    next_dds_8:;
   }
 }
 
@@ -1648,7 +1656,7 @@ I64 RosDdsSpinOnce(CRtpsPart *pt)
   socks[3]=pt->user_mc;
   for (i=0;i<4;i++) {
     if (!socks[i])
-      continue;
+      goto next_dds_9;
     while (got<1000) {
       n=RosUdpRecv(socks[i],pt->rx,RTPS_MAX_DGRAM,&ip,&port);
       if (n<0)
@@ -1657,6 +1665,7 @@ I64 RosDdsSpinOnce(CRtpsPart *pt)
       pt->recvd++;
       RtpsHandleMsg(pt,pt->rx,n);
     }
+    next_dds_9:;
   }
   now=RosTimeSteadyNs();
   if (now>=pt->spdp_next_ns) {
@@ -1666,7 +1675,7 @@ I64 RosDdsSpinOnce(CRtpsPart *pt)
   for (i=0;i<pt->writers->len;i++) {
     w=RosVecGetI64(pt->writers,i);
     if (!w->reliable || now<w->next_hb_ns)
-      continue;
+      goto next_dds_10;
     unacked=FALSE;
     for (j=0;j<w->readers->len;j++) {
       rp=RosVecGetI64(w->readers,j);
@@ -1681,6 +1690,7 @@ I64 RosDdsSpinOnce(CRtpsPart *pt)
       w->next_hb_ns=now+RTPS_HB_PERIOD_NS;
     else
       w->next_hb_ns=now+RTPS_HB_IDLE_NS;
+    next_dds_10:;
   }
   i=0;
   while (i<pt->remote->len) {	//leases

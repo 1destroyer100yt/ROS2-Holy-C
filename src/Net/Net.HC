@@ -409,9 +409,9 @@ U0 NetOnUdp(I64 src,I64 dst,U8 *p,I64 len)
   for (i=0;i<NET_SOCK_N;i++) {
     s=&ros_socks[i];
     if (!s->used || s->port!=dport)
-      continue;
+      goto next_net_1;
     if (s->q->len>=NET_SOCK_QMAX)
-      continue;	//full: drop
+      goto next_net_1;	//full: drop
     d=CAlloc(sizeof(CRosNetDgram));
     d->ip=src;
     d->port=sport;
@@ -419,6 +419,7 @@ U0 NetOnUdp(I64 src,I64 dst,U8 *p,I64 len)
     d->data=MAlloc(d->len+1);
     MemCpy(d->data,p+8,d->len);
     RosVecPushI64(s->q,d);
+    next_net_1:;
   }
 }
 

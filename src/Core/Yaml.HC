@@ -131,7 +131,7 @@ CRosVec *RosYamlFlatten(U8 *text)
     Free(line);
     if (!ok || !StrLen(s) || !StrCmp(s,"---") || !StrCmp(s,"...")) {
       Free(s);
-      continue;
+      goto next_yaml_1;
     }
     if (s[0]=='-' && (s[1]==' ' || !s[1])) {	//block list item
       if (!list_path) {
@@ -157,7 +157,7 @@ CRosVec *RosYamlFlatten(U8 *text)
         Free(val);
       }
       Free(s);
-      continue;
+      goto next_yaml_1;
     }
     RosYamlFlushList(out,&list_path,&list);
     c=RosYamlColon(s);
@@ -165,7 +165,7 @@ CRosVec *RosYamlFlatten(U8 *text)
       RosYamlErr("expected key: value",i+1);
       ok=FALSE;
       Free(s);
-      continue;
+      goto next_yaml_1;
     }
     key=RosStrSub(s,0,c);
     val=RosStrTrim(s+c+1);
@@ -200,6 +200,7 @@ CRosVec *RosYamlFlatten(U8 *text)
       parent=path;
       parent_ind=ind;
     }
+    next_yaml_1:;
   }
   if (ok)
     RosYamlFlushList(out,&list_path,&list);

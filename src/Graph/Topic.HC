@@ -244,10 +244,11 @@ U8 *RosSubTake(CRosSub *s)
     if (s->qos.lifespan_ns && RosTimeSteadyNs()-sh->stamp_ns>s->qos.lifespan_ns) {
       s->expired++;
       RosSharedRelease(sh);
-      continue;
+      goto next_topic_1;
     }
     s->received++;
     return RosSharedMsg(sh);
+    next_topic_1:;
   }
 }
 

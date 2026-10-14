@@ -125,7 +125,7 @@ U0 RosBagSchemaDeps(CRosStrBuf *sb,CRosType *t,CRosVec *done)
   for (i=0;i<t->fields->len;i++) {
     f=RosVecGetI64(t->fields,i);
     if (f->kind!=ROS_T_MSG)
-      continue;
+      goto next_bag_1;
     seen=FALSE;
     for (j=0;j<done->len;j++) {
       d=RosVecGetI64(done,j);
@@ -133,7 +133,7 @@ U0 RosBagSchemaDeps(CRosStrBuf *sb,CRosType *t,CRosVec *done)
         seen=TRUE;
     }
     if (seen)
-      continue;
+      goto next_bag_1;
     RosVecPushI64(done,f->sub);
     RosStrBufAdd(sb,"================================================================================\nMSG: ");
     RosStrBufAdd(sb,f->sub->pkg);
@@ -144,6 +144,7 @@ U0 RosBagSchemaDeps(CRosStrBuf *sb,CRosType *t,CRosVec *done)
     if (!RosStrEndsWith(f->sub->def,"\n"))
       RosStrBufAddC(sb,'\n');
     RosBagSchemaDeps(sb,f->sub,done);
+    next_bag_1:;
   }
 }
 
@@ -327,7 +328,7 @@ U0 McapWChunk(CRosBag *bag,I64 from,I64 to,CMcapChunkInfo *ci)
         cnt++;
     }
     if (!cnt)
-      continue;
+      goto next_bag_2;
     McapWN(ci->idx_offsets,c->id,2);
     McapWN(ci->idx_offsets,b->len,8);
     at=McapRec(b,MCAP_MSGINDEX);
@@ -336,11 +337,13 @@ U0 McapWChunk(CRosBag *bag,I64 from,I64 to,CMcapChunkInfo *ci)
     for (i=from;i<to;i++) {
       m=RosVecGetI64(bag->msgs,i);
       if (m->chan!=c->id)
-        continue;
+        goto next_bag_3;
       McapWN(b,m->stamp,8);
       McapWN(b,RosVecGetI64(offs,i-from),8);
+      next_bag_3:;
     }
     McapRecEnd(b,at);
+    next_bag_2:;
   }
   ci->idx_len=b->len-idx_start;
   RosVecDel(offs);
@@ -898,7 +901,7 @@ I64 RosBagPlay(U8 *path,F64 rate)
     m=RosVecGetI64(bag->msgs,i);
     c=RosBagChanById(bag,m->chan);
     if (!c || !c->pub)
-      continue;
+      goto next_bag_4;
     if (rate>0.0) {
       wait=t0+ToI64(ToF64(m->stamp-bag->start)/rate)-RosTimeSteadyNs();
       while (wait>0 && ros_ok) {
@@ -915,6 +918,7 @@ I64 RosBagPlay(U8 *path,F64 rate)
     } else
       RosSharedRelease(sh);
     RosCliSpinOnce(n,0);
+    next_bag_4:;
   }
   RosCliNodeDel(n);
   RosBagFree(bag);
@@ -963,11 +967,11 @@ CRosBagRec *RosBagRecordStart(U8 *path,U8 *topics)
     names=RosCliAllNames(RosGraph()->topics,FALSE);
   for (i=0;i<names->len;i++) {
     if (!StrLen(RosVecGetI64(names,i)))
-      continue;
+      goto next_bag_5;
     t=RosTopicTypeOf(RosVecGetI64(names,i));
     if (!t) {
       Print("not recording %s: unknown topic\n",RosVecGetI64(names,i));
-      continue;
+      goto next_bag_5;
     }
     bs=CAlloc(sizeof(CRosBagSub));
     bs->rec=r;
@@ -977,6 +981,7 @@ CRosBagRec *RosBagRecordStart(U8 *path,U8 *topics)
     q.depth=1000;
     RosSubNew(r->node,bs->topic,t,&q,&RosBagOnMsg,bs);
     RosVecPushI64(r->subs,bs);
+    next_bag_5:;
   }
   RosStrVecDel(names);
   return r;

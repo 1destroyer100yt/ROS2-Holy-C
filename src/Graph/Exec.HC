@@ -241,9 +241,10 @@ I64 RosExecSweepMT(CRosExec *e)
   for (i=0;i<e->nodes->len;i++) {
     n=RosVecGetI64(e->nodes,i);
     if (LBts(&n->cb_lock,0))
-      continue;	//another task is in this node's callbacks
+      goto next_exec_1;	//another task is in this node's callbacks
     work+=RosExecSpinNode(n);
     LBtr(&n->cb_lock,0);
+    next_exec_1:;
   }
   return work;
 }

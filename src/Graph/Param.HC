@@ -241,12 +241,13 @@ Bool RosParamLoadYaml(U8 *text)
     it=RosVecGetI64(items,i);
     cut=RosStrFind(it->path,".ros__parameters.");
     if (cut<=0)
-      continue;
+      goto next_param_1;
     key=RosStrSub(it->path,0,cut);
     name=StrNew(it->path+cut+17);
     RosParamOverride(key,name,it->val);
     Free(key);
     Free(name);
+    next_param_1:;
   }
   RosYamlFree(items);
   return TRUE;
@@ -658,7 +659,7 @@ U0 RosParamSrvList(CSrv_rcl_interfaces_ListParameters_Request *req,
     if (want && req->depth && RosDots(name)>=req->depth && !req->prefixes.len)
       want=FALSE;
     if (!want)
-      continue;
+      goto next_param_2;
     RosElemSetS(RosSeqAppend(t,&resp->result,"names"),StrNew(name));
     cut=StrLen(name);
     while (cut>0 && name[cut-1]!='.')
@@ -674,6 +675,7 @@ U0 RosParamSrvList(CSrv_rcl_interfaces_ListParameters_Request *req,
       else
         RosElemSetS(RosSeqAppend(t,&resp->result,"prefixes"),pfx);
     }
+    next_param_2:;
   }
 }
 

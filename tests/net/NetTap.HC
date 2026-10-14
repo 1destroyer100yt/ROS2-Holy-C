@@ -18,12 +18,13 @@ I64 NetEcho(CRosNetIf *nif)
     n=RosUdpRecv(u,buf,70000,&ip,&port);
     if (n<0) {
       RosSleepNs(200000);
-      continue;
+      goto next_nettap_1;
     }
     if (n==4 && !MemCmp(buf,"quit",4))
       break;
     RosUdpSend(u,ip,port,buf,n);
     echoed++;
+    next_nettap_1:;
   }
   Print("RESULT holyc: echoed %d datagrams, rx %d frames (%d bad), tx %d\n",echoed,
 	nif->rx_pkts,nif->rx_bad,nif->tx_pkts);

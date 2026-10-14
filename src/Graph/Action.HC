@@ -222,22 +222,23 @@ U0 RosActionOnCancel(CSrv_action_msgs_CancelGoal_Request *req,
     if (before && g->stamp<=before)
       match=TRUE;
     if (!match)
-      continue;
+      goto next_action_1;
     if (RosGoalTerminal(g->status)) {
       terminal_match=TRUE;
-      continue;
+      goto next_action_1;
     }
     ok=TRUE;
     if (g->status!=ROS_GOAL_CANCELING && as->cancel_cb)
       ok=(*as->cancel_cb)(g,as->user);
     if (!ok)
-      continue;
+      goto next_action_1;
     g->status=ROS_GOAL_CANCELING;
     RosSeqResize(f,resp,n+1);
     gi=resp->goals_canceling.data;
     MemCpy(gi[n].goal_id.uuid,g->uuid,16);
     RosStampFill(&gi[n].stamp,g->stamp);
     n++;
+    next_action_1:;
   }
   if (n)
     resp->return_code=ROS_action_msgs_CancelGoal_Response_ERROR_NONE;

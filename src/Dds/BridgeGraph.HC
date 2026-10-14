@@ -52,10 +52,11 @@ U0 RosDdsRemoteTopics(CRosVec *names,CRosVec *types)
   for (i=0;i<pt->remote_eps->len;i++) {
     e=RosVecGetI64(pt->remote_eps,i);
     if (!RosStrStartsWith(e->topic,"rt/"))
-      continue;
+      goto next_bridgegraph_1;
     t=RosDdsTypeDemangle(e->type);
     if (t)
       RosDdsAddUnique(names,types,StrNew(e->topic+2),t);
+    next_bridgegraph_1:;
   }
   RosLockPut(&pt->lock);
 }
@@ -74,12 +75,13 @@ U0 RosDdsRemoteServices(CRosVec *names,CRosVec *types)
     n=StrLen(e->topic);
     if (!RosStrStartsWith(e->topic,"rq/") || !RosStrEndsWith(e->topic,"Request") ||
 	!RosStrEndsWith(e->type,"_Request_"))
-      continue;
+      goto next_bridgegraph_2;
     t=RosDdsTypeDemangle(e->type);
     if (t) {
       t[StrLen(t)-8]=0;	//drop "_Request"
       RosDdsAddUnique(names,types,RosStrSub(e->topic,2,n-9),t);
     }
+    next_bridgegraph_2:;
   }
   RosLockPut(&pt->lock);
 }
@@ -95,9 +97,10 @@ U0 RosDdsRemoteNodes(CRosVec *fqns)
   for (i=0;i<ros_dds_nodes->len;i++) {
     dn=RosVecGetI64(ros_dds_nodes,i);
     if (!RtpsRemoteFind(pt,dn->prefix))	//that participant is gone
-      continue;
+      goto next_bridgegraph_3;
     for (j=0;j<dn->fqns->len;j++)
       RosVecPushI64(fqns,StrNew(RosVecGetI64(dn->fqns,j)));
+    next_bridgegraph_3:;
   }
   RosLockPut(&pt->lock);
 }

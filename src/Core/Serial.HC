@@ -93,11 +93,12 @@ I64 RosSerialRead(CRosSerial *s,U8 *buf,I64 cap,I64 wait_ns)
     c=RosSerialGetC(s);
     if (c>=0) {
       buf[n++]=c;
-      continue;
+      goto next_serial_1;
     }
     if (RosTimeSteadyNs()>=end)
       break;
     Yield();
+    next_serial_1:;
   }
   s->rx_bytes+=n;
   return n;

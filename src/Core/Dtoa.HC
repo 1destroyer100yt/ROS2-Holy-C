@@ -256,7 +256,7 @@ I64 RosF64Digits(F64 x,U8 *dig,I64 *k)
     if (!tc1 && !tc2) {
       dig[n]='0'+dd;
       n++;
-      continue;
+      goto next_dtoa_1;
     }
     if (tc1 && tc2) {	//both ends ok: pick the closer one
       RosBigCopy(&t,&r);
@@ -269,6 +269,7 @@ I64 RosF64Digits(F64 x,U8 *dig,I64 *k)
     dig[n]='0'+dd;
     n++;
     break;
+    next_dtoa_1:;
   }
   dig[n]=0;
   return n;

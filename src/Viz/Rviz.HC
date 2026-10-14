@@ -298,11 +298,11 @@ U0 RosRvizDrawMap(CRosRviz *rv,CMsg_nav_msgs_OccupancyGrid *m)
       z=0.0;
       RosTfApply(&inv,&x,&y,&z);
       if (x<0.0 || y<0.0)
-        continue;
+        goto next_rviz_1;
       cx=ToI64(x/res);
       cy=ToI64(y/res);
       if (cx>=w || cy>=h)
-        continue;
+        goto next_rviz_1;
       v=cells[cy*w+cx];
       if (v>127)
         v-=256;	//int8
@@ -314,6 +314,7 @@ U0 RosRvizDrawMap(CRosRviz *rv,CMsg_nav_msgs_OccupancyGrid *m)
         rv->cv->px[py*rv->cv->w+px]=ROS_LTGRAY;	//free
       else
         rv->cv->px[py*rv->cv->w+px]=ROS_BROWN;	//in between
+      next_rviz_1:;
     }
   rv->drawn++;
 }
@@ -327,10 +328,11 @@ U0 RosRvizDrawScan(CRosRviz *rv,CMsg_sensor_msgs_LaserScan *s,I64 color)
     return;
   for (i=0;i<s->ranges.len;i++) {
     if (r[i]!=r[i] || r[i]<s->range_min || r[i]>s->range_max)
-      continue;	//NaN, too near, too far (inf)
+      goto next_rviz_2;	//NaN, too near, too far (inf)
     a=s->angle_min+i*s->angle_increment;
     RosRvizDot(rv,&t,r[i]*Cos(a),r[i]*Sin(a),1,color);
     rv->drawn++;
+    next_rviz_2:;
   }
 }
 
@@ -424,13 +426,14 @@ U0 RosRvizDrawTf(CRosRviz *rv)
   RosLockPut(&rv->tf->lock);
   for (i=0;i<names->len;i++) {
     if (!RosRvizFrame(rv,RosVecGetI64(names,i),0,&t))
-      continue;
+      goto next_rviz_3;
     if (RosRvizFrame(rv,RosVecGetI64(parents,i),0,&tp))
       RosCanvasLine(rv->cv,RosRvizSx(rv,t.x),RosRvizSy(rv,t.y),RosRvizSx(rv,tp.x),
 	RosRvizSy(rv,tp.y),ROS_YELLOW);
     RosRvizLine(rv,&t,0.0,0.0,len,0.0,ROS_RED);
     RosRvizLine(rv,&t,0.0,0.0,0.0,len,ROS_GREEN);
     rv->drawn++;
+    next_rviz_3:;
   }
   RosStrVecDel(names);
   RosStrVecDel(parents);

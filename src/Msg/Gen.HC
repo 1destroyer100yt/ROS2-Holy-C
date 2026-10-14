@@ -184,13 +184,14 @@ U0 RosGenAddDeps(CRosGenPkg *p,CRosType *t)
   for (i=0;i<t->fields->len;i++) {
     f=RosVecGetI64(t->fields,i);
     if (f->kind!=ROS_T_MSG || !StrCmp(f->sub->pkg,p->name))
-      continue;
+      goto next_gen_1;
     have=FALSE;
     for (j=0;j<p->deps->len;j++)
       if (!StrCmp(RosVecGetI64(p->deps,j),f->sub->pkg))
         have=TRUE;
     if (!have)
       RosVecPushI64(p->deps,StrNew(f->sub->pkg));
+    next_gen_1:;
   }
 }
 
@@ -271,7 +272,7 @@ Bool RosIfaceGen(U8 *root)
     item=RosStrTrim(RosVecGetI64(lines,i));
     if (!StrLen(item)) {
       Free(item);
-      continue;
+      goto next_gen_2;
     }
     parts=RosStrSplit(item,'/');
     if (parts->len!=3) {
@@ -330,6 +331,7 @@ Bool RosIfaceGen(U8 *root)
     }
     RosStrVecDel(parts);
     Free(item);
+    next_gen_2:;
   }
   RosStrVecDel(lines);
   if (!ok)
@@ -342,7 +344,7 @@ Bool RosIfaceGen(U8 *root)
     for (i=0;i<pkgs->len;i++) {
       p=RosVecGetI64(pkgs,i);
       if (p->done)
-        continue;
+        goto next_gen_3;
       ready=TRUE;
       for (j=0;j<p->deps->len;j++) {
         q=RosGenPkgGet(pkgs,RosVecGetI64(p->deps,j));
@@ -354,6 +356,7 @@ Bool RosIfaceGen(U8 *root)
         RosVecPushI64(order,p);
         progress=TRUE;
       }
+      next_gen_3:;
     }
   }
   if (order->len!=pkgs->len) {

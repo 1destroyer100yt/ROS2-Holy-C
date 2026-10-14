@@ -79,7 +79,7 @@ U8 *DhcpOpt(U8 *p,I64 n,I64 code,I64 *len)
       break;
     if (!c) {	//pad
       i++;
-      continue;
+      goto next_dhcp_1;
     }
     if (i+1>=n)
       break;
@@ -91,6 +91,7 @@ U8 *DhcpOpt(U8 *p,I64 n,I64 code,I64 *len)
       return p+i+2;
     }
     i+=2+l;
+    next_dhcp_1:;
   }
   return NULL;
 }
@@ -105,16 +106,17 @@ I64 DhcpWait(I64 h,I64 xid,U8 *buf,I64 *n,I64 until)
     len=RosNetUdpRecv(h,buf,1500,&ip,&port);
     if (len<0) {
       RosSleepNs(ROS_NS_PER_MS);
-      continue;
+      goto next_dhcp_2;
     }
     if (len<244 || buf[0]!=2 || NetGet32(buf+4)!=xid || MemCmp(buf+28,ros_netif->mac,6) ||
 	buf[236]!=99 || buf[237]!=130 || buf[238]!=83 || buf[239]!=99)
-      continue;
+      goto next_dhcp_2;
     t=DhcpOpt(buf,len,53,&l);
     if (!t || l!=1)
-      continue;
+      goto next_dhcp_2;
     *n=len;
     return t[0];
+    next_dhcp_2:;
   }
   return 0;
 }
@@ -152,7 +154,7 @@ Bool RosNetDhcp(I64 timeout_ns)
       step=end;
     type=DhcpWait(h,xid,buf,&len,step);
     if (type!=DHCP_OFFER)
-      continue;
+      goto next_dhcp_3;
     offer=NetGet32(buf+16);	//yiaddr
     server=DhcpOpt32(buf,len,54);
     n=DhcpPacket(pkt,xid,DHCP_REQUEST,offer,server);
@@ -162,7 +164,7 @@ Bool RosNetDhcp(I64 timeout_ns)
       step=end;
     type=DhcpWait(h,xid,buf,&len,step);
     if (type!=DHCP_ACK)
-      continue;	//NAK or nothing: start over
+      goto next_dhcp_3;	//NAK or nothing: start over
     mask=DhcpOpt32(buf,len,1);
     if (!mask)
       mask=0xFFFFFF00;
@@ -172,6 +174,7 @@ Bool RosNetDhcp(I64 timeout_ns)
     ros_dhcp_dns=DhcpOpt32(buf,len,6);
     RosNetConfig(NetGet32(buf+16),mask,gw);
     ok=TRUE;
+    next_dhcp_3:;
   }
   RosNetUdpClose(h);
   Free(pkt);

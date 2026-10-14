@@ -286,7 +286,7 @@ U8 *RosTopicListStr(Bool types)
   I64 i;
   for (i=0;i<v->len;i++) {
     if (RosNameHidden(RosVecGetI64(v,i)))
-      continue;
+      goto next_cli_1;
     RosStrBufAdd(sb,RosVecGetI64(v,i));
     if (types) {
       t=RosTopicTypeOf(RosVecGetI64(v,i));
@@ -296,6 +296,7 @@ U8 *RosTopicListStr(Bool types)
       RosStrBufAddC(sb,']');
     }
     RosStrBufAddC(sb,'\n');
+    next_cli_1:;
   }
   RosStrVecDel(v);
   return RosStrBufTake(sb);
@@ -404,7 +405,7 @@ I64 RosTopicEchoN(U8 *name,U8 *field,I64 count,I64 timeout_ns)
     m=RosSubTake(s);
     if (!m) {
       RosCliSpinOnce(n,ROS_NS_PER_MS);
-      continue;
+      goto next_cli_2;
     }
     if (field) {
       y=RosMsgGet(t,m,field);
@@ -417,6 +418,7 @@ I64 RosTopicEchoN(U8 *name,U8 *field,I64 count,I64 timeout_ns)
       RosMsgPrint(t,m);
     RosMsgRelease(m);
     got++;
+    next_cli_2:;
   }
   RosCliNodeDel(n);
   return got;
@@ -588,7 +590,7 @@ U8 *RosServiceListStr(Bool types)
   I64 i;
   for (i=0;i<v->len;i++) {
     if (RosNameHidden(RosVecGetI64(v,i)))
-      continue;
+      goto next_cli_3;
     RosStrBufAdd(sb,RosVecGetI64(v,i));
     if (types) {
       RosGraphLock();
@@ -610,6 +612,7 @@ U8 *RosServiceListStr(Bool types)
       }
     }
     RosStrBufAddC(sb,'\n');
+    next_cli_3:;
   }
   RosStrVecDel(v);
   return RosStrBufTake(sb);

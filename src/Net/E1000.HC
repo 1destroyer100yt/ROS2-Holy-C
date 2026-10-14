@@ -126,7 +126,7 @@ Bool E1000Find(I64 *bus,I64 *dev,I64 *fn)
       for (f=0;f<8;f++) {
         id=PciRead32(b,d,f,0);
         if ((id&0xFFFF)!=0x8086)
-          continue;
+          goto next_e1000_1;
         switch (id>>16) {
           case 0x100E:	//82540EM (QEMU e1000)
           case 0x100F:	//82545EM
@@ -137,6 +137,7 @@ Bool E1000Find(I64 *bus,I64 *dev,I64 *fn)
             *fn=f;
             return TRUE;
         }
+        next_e1000_1:;
       }
   return FALSE;
 }

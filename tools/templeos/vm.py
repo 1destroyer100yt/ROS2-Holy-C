@@ -113,12 +113,19 @@ class Vm:
                 self.key(ch)
             time.sleep(delay)
 
+    def body(self, skip_rows=16):
+        """Screen pixels without the top rows (TempleOS's clock lives there)."""
+        s = self.screen_bytes()
+        parts = s.split(b"\n", 3)               # P6, size, maxval, pixels
+        w = int(parts[1].split()[0])
+        return parts[3][w * 3 * skip_rows:]
+
     def wait_quiet(self, seconds=3.0, timeout=600):
-        """Wait until the screen stops changing for `seconds`."""
+        """Wait until the screen (below the clock) stops changing for `seconds`."""
         end = time.time() + timeout
         last, since = None, time.time()
         while time.time() < end:
-            s = self.screen_bytes()
+            s = self.body()
             if s != last:
                 last, since = s, time.time()
             elif time.time() - since >= seconds:

@@ -221,12 +221,13 @@ Bool RosCdrPutFields(CRosBuf *b,CRosType *t,U8 *m)
       RosBufPutN(b,n,4);
       if (f->stride==1 && f->kind!=ROS_T_BOOL) {	//byte arrays: one copy
         RosBufPutBytes(b,RosFieldElem(f,m,0),n);
-        continue;
+        goto next_cdr_1;
       }
     }
     for (j=0;j<n;j++)
       if (!RosCdrPutElem(b,f,RosFieldElem(f,m,j)))
         return FALSE;
+    next_cdr_1:;
   }
   return TRUE;
 }
@@ -290,7 +291,7 @@ Bool RosCdrGetFields(CRosBuf *b,CRosType *t,U8 *m)
       if (f->stride==1 && f->kind!=ROS_T_BOOL) {
         MemCpy(RosFieldElem(f,m,0),b->data+b->pos,n);
         b->pos+=n;
-        continue;
+        goto next_cdr_2;
       }
     } else
       n=RosFieldLen(f,m);
@@ -301,6 +302,7 @@ Bool RosCdrGetFields(CRosBuf *b,CRosType *t,U8 *m)
         RosMsgErr("message is cut short",f->name);
         return FALSE;
       }
+    next_cdr_2:;
   }
   return TRUE;
 }

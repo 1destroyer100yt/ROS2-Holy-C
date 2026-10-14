@@ -142,10 +142,11 @@ U0 RosHashRefs(CRosVec *deps,CRosType *skip,CRosVec *refs)
   for (i=0;i<deps->len;i++) {
     d=RosVecGetI64(deps,i);
     if (d==skip)
-      continue;
+      goto next_hash_1;
     js=RosHashStruct(d);
     RosVecPushI64(refs,MStrPrint("%s\t%s",d->name,js));
     Free(js);
+    next_hash_1:;
   }
 }
 

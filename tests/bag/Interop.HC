@@ -102,7 +102,7 @@ I64 BagInteropRead()
     c=RosBagChanById(bag,m->chan);
     if (!c || !c->t) {
       bad++;
-      continue;
+      goto next_interop_1;
     }
     msg=RosMsgNew(c->t);
     if (!RosCdrDeser(c->t,m->data,m->len,msg)) {
@@ -125,6 +125,7 @@ I64 BagInteropRead()
       Free(y);
     }
     RosMsgDel(c->t,msg);
+    next_interop_1:;
   }
   if (tw!=20)
     bad++;

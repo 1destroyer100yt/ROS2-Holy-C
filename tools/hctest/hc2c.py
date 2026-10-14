@@ -31,6 +31,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 LINT_RULES = [
     (r"\?", "no ?: operator in HolyC - use if/else"),
     (r"\bdo\s*\{|\bdo\s*$", "avoid do/while - use while"),
+    (r"\bcontinue\b", "no continue in HolyC - goto a label before the loop's closing brace"),
     (r"\b(const|static|volatile|unsigned|signed|int|char|void|float|double|long|short|"
      r"struct|typedef|enum\s+\w+\s*\{)\b", "C keyword/type - use HolyC types (I64, U8, F64, U0, ...)"),
     (r"\bfor\s*\(\s*[A-Z]\w*\s+\**\s*\w+\s*=", "no declarations in for(); declare at the top"),
