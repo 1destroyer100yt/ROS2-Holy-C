@@ -33,5 +33,6 @@ PluginList;
 ```
 (`Run.HC` loads everything first; outside of tests use `#include "~/ROS2-Holy-C/Load.HC"`.)
 
-All of it compiles on a real TempleOS 5.03 (in QEMU, see [docs/TEMPLEOS.md](docs/TEMPLEOS.md)).
+All of it compiles on a real TempleOS 5.03, and all 2152 unit tests pass there (in QEMU, see
+[docs/TEMPLEOS.md](docs/TEMPLEOS.md)).
 If something doesn't compile, open an issue with the error text.

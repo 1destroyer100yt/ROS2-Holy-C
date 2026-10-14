@@ -42,7 +42,10 @@ networking (user networking doesn't pass multicast); see [NETWORK.md](NETWORK.md
 ## Checked on a real TempleOS
 The whole of `Load.HC` (core, all 176 interfaces, graph, tools, tf, RvizLite, hardware,
 network, DDS) compiles on TempleOS 5.03 with no errors; the only warnings are unused
-callback parameters and "Using 64-bit reg var". To repeat it (QEMU, no screen):
+callback parameters and "Using 64-bit reg var". The unit tests (`tests/Run.HC`,
+`RosTestsRun`) all pass there too: 2152 passed, 0 failed. (Tests that open missing files
+on purpose make TempleOS print "File not found" errors; those are expected.)
+To repeat it (QEMU, no screen):
 ```
 python3 tools/templeos/run.py TempleOS.ISO 'C:/ROS2-Holy-C/Load.HC'
 ```
@@ -67,6 +70,7 @@ Things the real compiler taught us (the linter in `tools/hctest` now checks them
   the last bits. `RosStrToF64` doesn't use them: it is exact (big integers), and tests that
   need exact values use `RosTestLit("0.0001")`.
 
-Still only checked on Linux (through `tools/hctest`, HolyC translated to C): running the
-code. Lines marked `VERIFY` in the source are the TempleOS-only parts (drawing, keyboard,
+Still only checked on Linux (through `tools/hctest`, HolyC translated to C): the network
+card, DDS against real ROS 2, the RoboClaw over a serial port, and the screen and keyboard
+parts (TurtleSim's window, RvizLite). Lines marked `VERIFY` in the source are the TempleOS-only parts (drawing, keyboard,
 disk, PCI, the e1000 driver, Spawn on other cores).
